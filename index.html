@@ -442,7 +442,7 @@ function makeChart(kind){
   const el = document.createElement('div');
   const leg = document.createElement('div'); leg.className = 'legend num'; el.appendChild(leg);
   const chart = LightweightCharts.createChart(el, {
-    autoSize: true,
+    width: 300, height: 230,
     layout: { background: {type:'solid', color:'transparent'}, textColor: st.text, fontSize: 11, fontFamily: getComputedStyle(document.body).fontFamily },
     grid: { vertLines: {color: st.grid}, horzLines: {color: st.grid} },
     rightPriceScale: { borderColor: st.border },
@@ -451,12 +451,27 @@ function makeChart(kind){
     localization: { priceFormatter: fmt }
   });
   const series = chart.addCandlestickSeries({ upColor: st.up, downColor: st.down, borderVisible: false, wickUpColor: st.up, wickDownColor: st.down });
-  const c = { el, leg, chart, series, priceLine: null, last: null, range: null, kind };
+  const c = { el, leg, chart, series, priceLine: null, last: null, range: null, n: 0, kind, needFit: true };
+  // Size the chart from its box ourselves, and only place candles once the box has a real width.
+  c.ro = new ResizeObserver(() => sizeChart(c));
+  c.ro.observe(el);
   chart.subscribeCrosshairMove(param => {
     const d = param && param.time ? param.seriesData.get(series) : null;
     setLegend(c, d ? {time: d.time - IST, o: d.open, h: d.high, l: d.low, c: d.close} : c.last);
   });
   return c;
+}
+function sizeChart(c){
+  const w = Math.floor(c.el.clientWidth), h = Math.floor(c.el.clientHeight);
+  if (w < 50 || h < 50) return false;
+  if (w !== c.w || h !== c.h) { c.chart.resize(w, h); c.w = w; c.h = h; }
+  if (c.needFit && c.n) fitChart(c);
+  return true;
+}
+function fitChart(c){
+  const n = c.n, show = Math.min(n, S.range === '1mo' ? 70 : 40);
+  c.chart.timeScale().setVisibleLogicalRange({from: n - show - 0.5, to: n + 1.5});
+  c.needFit = false;
 }
 function setLegend(c, x){
   if (!x) { c.leg.textContent = ''; return; }
@@ -476,15 +491,14 @@ function mountCharts(){
     c.series.setData(d.candles.map(x => ({time: x.time + IST, open: x.o, high: x.h, low: x.l, close: x.c})));
     if (c.priceLine) { c.series.removePriceLine(c.priceLine); c.priceLine = null; }
     if (d.sum.prevClose) c.priceLine = c.series.createPriceLine({price: d.sum.prevClose, color: CHART_STYLE[kind].pl, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Prev close'});
-    if (c.range !== S.range) {
-      const n = d.candles.length, show = Math.min(n, S.range === '1mo' ? 70 : 40);
-      c.chart.timeScale().setVisibleLogicalRange({from: n - show - 0.5, to: n + 1.5});
-      c.range = S.range;
-    }
+    const n = d.candles.length;
+    if (c.range !== S.range || Math.abs(n - c.n) > 2) c.needFit = true;
+    c.range = S.range; c.n = n;
+    sizeChart(c);
     const L = d.sum.last; c.last = {time: L.time, o: L.o, h: L.h, l: L.l, c: L.c};
     setLegend(c, c.last);
   });
-  for (const [key, c] of S.charts) if (!used.has(key)) { c.chart.remove(); S.charts.delete(key); }
+  for (const [key, c] of S.charts) if (!used.has(key)) { c.ro.disconnect(); c.chart.remove(); S.charts.delete(key); }
 }
 
 // ---------- shared view bits ----------
