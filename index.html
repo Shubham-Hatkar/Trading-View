@@ -4,132 +4,267 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hourly Candles · NSE &amp; BSE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
-:root{--bg:#0b0f17;--panel:#121826;--panel2:#182033;--line:#243049;--text:#e6ebf5;--muted:#8b97b0;--up:#22c55e;--down:#ef4444;--accent:#60a5fa;--warn:#f59e0b}
+/* ---------- theme tokens ---------- */
+body[data-theme="classic"]{--bg:#0b0f17;--panel:#121826;--panel2:#182033;--line:#243049;--text:#e6ebf5;--muted:#8b97b0;--up:#22c55e;--down:#ef4444;--accent:#60a5fa;--live:#f59e0b;--r:12px;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--onaccent:#0b0f17}
+body[data-theme="heat"]{--bg:#F4F6F9;--panel:#FFFFFF;--panel2:#F8FAFC;--line:#D9DEE7;--text:#0F172A;--muted:#475569;--up:#15803D;--down:#B91C1C;--accent:#1D4ED8;--live:#B45309;--r:14px;--font:Manrope,system-ui,sans-serif;--onaccent:#FFFFFF}
+body[data-theme="candle"]{--bg:#0D1117;--panel:#161B22;--panel2:#0D1117;--line:#30363D;--text:#E6EDF3;--muted:#9AA4B2;--up:#3FB950;--down:#F85149;--accent:#F2CC60;--live:#F2CC60;--r:16px;--font:"Space Grotesk",system-ui,sans-serif;--onaccent:#0D1117}
+body[data-theme="terminal"]{--bg:#0A0A0A;--panel:#0A0A0A;--panel2:#141414;--line:#333333;--text:#E5E5E5;--muted:#A3A3A3;--up:#4ADE80;--down:#F87171;--accent:#FFB000;--live:#FFB000;--r:0px;--font:"JetBrains Mono",ui-monospace,monospace;--onaccent:#0A0A0A}
+body[data-theme="focus"]{--bg:#FFFFFF;--panel:#FFFFFF;--panel2:#F3F4F6;--line:#E5E7EB;--text:#111827;--muted:#4B5563;--up:#15803D;--down:#B91C1C;--accent:#4338CA;--live:#4338CA;--r:18px;--font:Sora,system-ui,sans-serif;--onaccent:#FFFFFF}
+
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 var(--font)}
+body{transition:background .2s}
 .num{font-variant-numeric:tabular-nums}
-header{position:sticky;top:0;z-index:20;background:rgba(11,15,23,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 14px}
-.toprow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
-h1 small{color:var(--muted);font-weight:500}
-.pill{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
-.pill.open{color:var(--up);border-color:rgba(34,197,94,.45)}
-.pill.closed{color:var(--muted)}
-.spacer{flex:1}
-.livebtn.on{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.6);color:#fcd34d}
-button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
-button:hover{border-color:#36507a}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+button{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px;cursor:pointer;min-height:36px}
 button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- header (shared, themed by tokens) ---------- */
+header{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 14px}
+body[data-theme="terminal"] header{border-bottom-color:var(--accent)}
+.toprow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h1{font-size:17px;margin:0;font-weight:800;letter-spacing:-.2px}
+body[data-theme="terminal"] h1{color:var(--accent);letter-spacing:1px;font-size:15px;text-transform:uppercase}
+h1 small{color:var(--muted);font-weight:500}
+.pill{font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+body[data-theme="terminal"] .pill{border-radius:0}
+.pill.open{color:var(--up);border-color:var(--up)}
+.spacer{flex:1}
+.livebtn{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.livebtn svg{stroke:var(--live)}
+.livebtn.on{background:var(--live);border-color:var(--live);color:var(--onaccent)}
+.livebtn.on svg{stroke:var(--onaccent)}
 .controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
-.search{position:relative;flex:1 1 240px;min-width:200px}
-.search input{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none}
-.search input:focus{border-color:var(--accent)}
-.sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:none;max-height:340px;overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.search{position:relative;flex:1 1 230px;min-width:200px}
+.search input{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;outline:none;min-height:44px}
+.search input::placeholder{color:var(--muted)}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);display:none;max-height:340px;overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:30}
 .sugg.show{display:block}
-.sugg div{padding:9px 12px;display:flex;gap:8px;align-items:center;cursor:pointer;border-bottom:1px solid #1a2234}
+.sugg div{padding:10px 12px;display:flex;gap:8px;align-items:center;cursor:pointer;border-bottom:1px solid var(--line)}
 .sugg div:last-child{border-bottom:0}
 .sugg div.active,.sugg div:hover{background:var(--panel2)}
-.sugg b{font-weight:600}
 .sugg .nm{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.tag{font-size:10px;padding:1px 6px;border-radius:5px;background:#1f2a40;color:#9fb4d8;letter-spacing:.3px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{border:0;border-radius:0;background:var(--panel);padding:8px 11px;color:var(--muted)}
-.seg button.on{background:#1d2b46;color:var(--text)}
-.banner{margin:10px 14px 0;padding:9px 12px;border-radius:10px;font-size:13px;display:none}
+.tag{font-size:10px;padding:1px 6px;border-radius:5px;border:1px solid var(--line);color:var(--muted);letter-spacing:.3px;font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--panel);padding:8px 11px;color:var(--muted);min-height:40px}
+.seg button.on{background:var(--accent);color:var(--onaccent);font-weight:700}
+.themes{display:flex;gap:6px;margin-top:10px;overflow-x:auto;padding-bottom:2px;align-items:center;scrollbar-width:none}
+.themes::-webkit-scrollbar{display:none}
+.themes .lbl{font-size:12px;color:var(--muted);margin-right:2px;white-space:nowrap}
+.themes button{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:13px;border-radius:999px;padding:6px 12px 6px 7px;min-height:38px}
+.themes button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
+.sw{width:22px;height:22px;border-radius:50%;display:inline-block;border:1px solid rgba(127,127,127,.4);flex-shrink:0}
+.banner{margin:10px 14px 0;padding:9px 12px;border-radius:var(--r);font-size:13px;display:none;border:1px solid var(--live);color:var(--text);background:var(--panel)}
 .banner.show{display:block}
-.banner.demo{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);color:#fcd34d}
-.banner.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5}
-main{padding:12px 14px 40px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
-@media (max-width:420px){.cards{grid-template-columns:1fr}main{padding:10px 8px 40px}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;transition:border-color .3s}
-.card.flash{border-color:var(--accent)}
-.chead{display:flex;gap:10px;align-items:flex-start}
-.cname{flex:1;min-width:0}
-.sym{font-weight:700;font-size:16px;display:flex;gap:6px;align-items:center}
-.full{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.price{text-align:right}
-.ltp{font-size:19px;font-weight:700}
-.chg{font-size:12.5px;font-weight:600}
-.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
-.x{background:transparent;border:0;color:var(--muted);padding:2px 4px;font-size:18px;line-height:1}
-.x:hover{color:var(--text)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
-.stat{background:var(--panel2);border-radius:9px;padding:6px 8px}
-.stat span{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.stat b{font-size:13.5px;font-weight:600}
-.sess{font-size:11.5px;color:var(--muted);margin-top:8px}
-.hours{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.hbox{border-radius:10px;padding:8px;border:1px solid var(--line);background:#0f1522}
-.hbox.cur{border-color:#2c4672}
-.hbox .lbl{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
-.live{color:var(--warn);font-weight:600}
-.ohlc{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;margin-top:4px;font-size:12.5px}
-.ohlc i{font-style:normal;color:var(--muted)}
-.ohlc b{font-weight:600;text-align:right}
-.hchg{margin-top:4px;font-size:12px;font-weight:600;text-align:right}
-.trend{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
-.chip{flex:1 1 0;min-width:40px;text-align:center;border-radius:7px;padding:3px 2px;font-size:10.5px;line-height:1.25}
-.chip.u{background:rgba(34,197,94,.14);color:#86efac}
-.chip.d{background:rgba(239,68,68,.14);color:#fca5a5}
-.chip.f{background:#1a2233;color:var(--muted)}
-.chip.forming{outline:1px dashed var(--warn)}
-.chartwrap{position:relative;height:230px;margin-top:10px}
-.legend{position:absolute;left:6px;top:4px;z-index:3;font-size:11.5px;background:rgba(18,24,38,.82);padding:3px 7px;border-radius:7px;pointer-events:none}
-.cfoot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
-.cfoot .muted{color:var(--muted);font-size:11.5px}
-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
-th,td{padding:5px 4px;text-align:right;border-bottom:1px solid #1a2234}
-th:first-child,td:first-child{text-align:left}
-th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
-tr.day td{background:#151d2e;color:#a9b8d6;font-weight:600;text-align:left}
-.tbl{max-height:320px;overflow:auto;display:none}
-.tbl.show{display:block}
-.cerr{color:#fca5a5;font-size:13px;margin-top:10px}
-.loading{color:var(--muted);font-size:13px;margin-top:10px}
+.banner.err{border-color:var(--down)}
+main{padding:12px 14px 30px}
 .empty{color:var(--muted);text-align:center;padding:40px 10px}
-.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1d2b46;border:1px solid #36507a;padding:9px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--panel);color:var(--text);border:1px solid var(--accent);padding:9px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
 .toast.show{opacity:1}
 footer{color:var(--muted);font-size:11.5px;text-align:center;padding:0 14px 24px}
+.x{background:transparent;border:0;color:var(--muted);padding:0;font-size:20px;line-height:1;min-width:36px;min-height:36px}
+.x:hover{color:var(--text)}
+.loadcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;color:var(--muted)}
+.errtxt{color:var(--down);font-size:13px}
+
+/* ---------- Classic ---------- */
+.c-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+@media (max-width:420px){.c-grid{grid-template-columns:1fr}main{padding:10px 8px 30px}}
+.c-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+.c-head{display:flex;gap:10px;align-items:flex-start}
+.c-name{flex:1;min-width:0}
+.c-sym{font-weight:700;font-size:16px;display:flex;gap:6px;align-items:center}
+.c-full{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-ltp{font-size:19px;font-weight:700;text-align:right}
+.c-chg{font-size:12.5px;font-weight:600;text-align:right}
+.c-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.c-stat{background:var(--panel2);border-radius:9px;padding:6px 8px}
+.c-stat span{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.c-stat b{font-size:13.5px;font-weight:600}
+.c-sess{font-size:11.5px;color:var(--muted);margin-top:8px}
+.c-trend{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.c-chip{flex:1 1 0;min-width:40px;text-align:center;border-radius:7px;padding:3px 2px;font-size:10.5px;line-height:1.25}
+.c-chip.u{background:rgba(34,197,94,.14);color:#86efac}
+.c-chip.d{background:rgba(239,68,68,.14);color:#fca5a5}
+.c-chip.f{background:#1a2233;color:var(--muted)}
+.c-chip.forming{outline:1px dashed var(--live)}
+.c-hours{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.c-hbox{border-radius:10px;padding:8px;border:1px solid var(--line);background:#0f1522}
+.c-hbox.cur{border-color:#2c4672}
+.c-hbox .lbl{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.livetxt{color:var(--live);font-weight:700}
+.c-ohlc{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;margin-top:4px;font-size:12.5px}
+.c-ohlc i{font-style:normal;color:var(--muted)}
+.c-ohlc b{font-weight:600;text-align:right}
+.c-hchg{margin-top:4px;font-size:12px;font-weight:600;text-align:right}
+.chartbox{position:relative;height:230px;margin-top:10px}
+.chartbox>div{position:absolute;inset:0}
+.legend{position:absolute;left:6px;top:4px;z-index:3;font-size:11.5px;padding:3px 7px;border-radius:7px;pointer-events:none;background:var(--panel);opacity:.92}
+.c-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;font-size:11.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+th,td{padding:5px 4px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+tr.day td{background:var(--panel2);font-weight:600;text-align:left}
+.tbl{max-height:320px;overflow:auto}
+
+/* ---------- Heat Strip ---------- */
+.h-wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;align-items:start}
+.h-card{background:var(--panel);border-radius:16px;padding:12px;box-shadow:0 1px 2px rgba(15,23,42,.06);display:flex;flex-direction:column;gap:6px}
+.h-title{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.h-title h2{margin:0;font-size:15px;font-weight:800}
+.h-title span{font-size:11.5px;color:var(--muted)}
+.h-cols,.h-row{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));gap:4px;align-items:center}
+.h-cols{font-size:10.5px;color:var(--muted);font-weight:700;padding:0 4px}
+.h-cols span{text-align:center}.h-cols span:first-child{text-align:left}
+.h-row{width:100%;padding:4px;border-radius:12px;border:0;background:transparent;text-align:left;min-height:54px}
+.h-row.sel{background:#EFF6FF;box-shadow:inset 0 0 0 1.5px #3B82F6}
+.h-name{display:flex;flex-direction:column;gap:1px;min-width:0}
+.h-name b{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h-name span{font-size:11px;white-space:nowrap}
+.h-cell{height:46px;border-radius:9px;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre-line;line-height:1.15;font-size:10.5px;font-weight:800}
+.h-cell.e{border:1.5px dashed #CBD5E1;color:#64748B;font-weight:600}
+.h-cell.live{outline:2px dashed var(--live);outline-offset:-2px}
+.h-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:4px 4px 0}
+.h-det{gap:12px;padding:14px}
+.h-det .top{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.h-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.h-box{border-radius:12px;padding:10px;background:var(--panel2);border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:5px}
+.h-box.cur{background:#FFFBEB;border:1.5px solid #F59E0B}
+.h-box .lbl{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);gap:4px}
+.h-box.cur .lbl{color:#92400E}
+.kv{display:flex;justify-content:space-between;font-size:13px}
+.kv span:first-child{color:var(--muted)}
+.kv span:last-child{font-weight:700}
+.rbar{position:relative;height:12px;border-radius:6px;background:#E2E8F0;margin:6px 9px}
+.rkey{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.rkey span{display:inline-flex;align-items:center;gap:5px}
+.linkbtn{background:transparent;border:0;color:var(--accent);padding:0;min-height:32px;font-weight:700;font-size:12.5px}
+
+/* ---------- Big Candle ---------- */
+.b-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:14px}
+@media (max-width:420px){.b-grid{grid-template-columns:1fr}}
+.b-card{background:var(--panel);border:1px solid #262D36;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.b-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.b-head h2{margin:0;font-size:18px;font-weight:700;white-space:nowrap}
+.b-mid{display:flex;gap:12px;align-items:stretch}
+.b-cbox{position:relative;width:150px;height:150px;flex-shrink:0;background:var(--panel2);border-radius:12px}
+.b-lab{position:absolute;left:62px;right:6px;display:flex;flex-direction:column;line-height:1.15}
+.b-lab span:first-child{color:var(--muted);font-size:11px}
+.b-lab span:last-child{font-size:13px;font-weight:700}
+.b-info{display:flex;flex-direction:column;gap:6px;min-width:0;justify-content:center}
+.b-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.b-stats div{background:var(--panel2);border-radius:9px;padding:6px 8px;display:flex;flex-direction:column;gap:1px}
+.b-stats span{font-size:10.5px;color:var(--muted);letter-spacing:.3px}
+.b-stats b{font-size:12.5px}
+.b-minis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.mini{display:flex;flex-direction:column;align-items:center;gap:4px}
+.mbox{position:relative;width:100%;height:56px;border-radius:8px;background:var(--panel2)}
+.mbox.e{background:transparent;border:1.5px dashed var(--line)}
+.mbox.live{background:rgba(210,153,34,.10);border:1.5px dashed var(--live)}
+.mini small{font-size:10.5px;color:var(--muted)}
+
+/* ---------- Range Terminal ---------- */
+.t-wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));column-gap:24px}
+.t-hdr{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);letter-spacing:.8px;padding:2px 2px 6px;grid-column:1/-1}
+.t-blk{border-top:1px solid #262626;padding:10px 2px 12px;display:flex;flex-direction:column;gap:9px}
+.t-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.t-top h2{margin:0;font-size:15px;font-weight:800;color:var(--accent);letter-spacing:.5px}
+.t-rng{position:relative;height:22px}
+.t-rng .trk{position:absolute;left:0;right:0;top:13px;height:4px;background:#262626}
+.t-lbls{display:flex;justify-content:space-between;font-size:11px;gap:6px}
+.t-minis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.t-mini{display:flex;flex-direction:column;align-items:center;gap:2px}
+.t-mbox{position:relative;width:100%;height:36px;border:1px solid #1F1F1F}
+.t-mbox.e{border:1px dotted #333}
+.t-mbox.live{border:1px dashed var(--accent)}
+.t-ohlc{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;align-items:baseline}
+.t-ohlc .hr{color:var(--onaccent);background:var(--accent);font-weight:800;padding:0 4px}
+.t-ohlc i{font-style:normal;color:var(--muted)}
+.t-key{border-top:1px solid #262626;padding-top:8px;display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);grid-column:1/-1}
+
+/* ---------- Focus Swipe ---------- */
+.f-wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px;touch-action:pan-y}
+.f-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.f-chips::-webkit-scrollbar{display:none}
+.f-chip{flex-shrink:0;height:52px;padding:0 12px;border-radius:14px;font-size:12.5px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:1px;border:1.5px solid var(--line);background:var(--panel)}
+.f-chip b{font-weight:700}
+.f-chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.f-chip.add{width:48px;align-items:center;border-style:dashed;border-color:#9CA3AF}
+.f-hero{display:flex;flex-direction:column;gap:6px}
+.f-hero .nm{font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.f-price{font-size:46px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.f-pill{align-self:flex-start;font-size:14px;font-weight:700;padding:5px 10px;border-radius:999px}
+.f-pill.u{color:var(--up);background:#DCFCE7}.f-pill.d{color:var(--down);background:#FEE2E2}
+.f-chart{border:1.5px solid var(--line);border-radius:20px;padding:12px 10px 8px}
+.f-chart .chartbox{margin-top:4px}
+.f-now{background:#EEF2FF;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.f-now .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-now .k{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.f-now .t{font-size:20px;font-weight:800}
+.f-prog{height:8px;border-radius:4px;background:#C7D2FE;overflow:hidden}
+.f-prog div{height:100%;background:var(--accent);border-radius:4px}
+.f-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.f-tiles div{background:var(--panel);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:2px;border:1.5px solid var(--line)}
+.f-now .f-tiles div{border:0}
+.f-tiles span{font-size:10.5px;color:var(--muted);font-weight:600}
+.f-tiles b{font-size:13px}
+.f-hours{display:flex;flex-direction:column;gap:8px}
+.f-hours h2{margin:0;font-size:16px;font-weight:800}
+.f-hr{display:grid;grid-template-columns:48px minmax(0,1fr) 64px;gap:10px;align-items:center;min-height:30px}
+.f-trk{position:relative;height:14px;border-radius:7px;background:var(--panel2)}
+.f-dots{display:flex;justify-content:center;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.f-dots i{width:8px;height:8px;border-radius:50%;background:#D1D5DB;display:inline-block}
+.f-dots i.on{width:22px;border-radius:4px;background:var(--text)}
 </style>
 </head>
-<body>
+<body data-theme="classic">
 <header>
   <div class="toprow">
-    <h1>Hourly Candles <small>· NSE &amp; BSE</small></h1>
+    <h1 id="ttl">Hourly Candles <small>· NSE &amp; BSE</small></h1>
     <span id="mkt" class="pill">…</span>
     <span class="spacer"></span>
     <span id="upd" class="pill num" title="Last updated">—</span>
-    <button id="live" class="livebtn" title="Live mode: update every 15 seconds while the market is open">⚡ Live: Off</button>
-    <button id="refresh" title="Refresh now">↻ Refresh</button>
+    <button id="live" class="livebtn" type="button" aria-pressed="false" title="Live mode: update every 15 seconds while the market is open"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"></path></svg><span>Live: Off</span></button>
+    <button id="refresh" type="button" title="Refresh now">↻ Refresh</button>
   </div>
   <div class="controls">
     <div class="search">
-      <input id="q" type="search" placeholder="Search stock or index (e.g. Reliance, TCS, Nifty)…" autocomplete="off" spellcheck="false">
-      <div id="sugg" class="sugg"></div>
+      <input id="q" type="search" placeholder="Search stock or index (e.g. Reliance, TCS, Nifty)…" autocomplete="off" spellcheck="false" aria-label="Search stock or index">
+      <div id="sugg" class="sugg" role="listbox"></div>
     </div>
-    <div class="seg" id="exSeg"><button data-ex="NS">NSE</button><button data-ex="BO">BSE</button></div>
-    <div class="seg" id="rgSeg"><button data-r="1d">1D</button><button data-r="5d">5D</button><button data-r="1mo">1M</button></div>
+    <div class="seg" id="exSeg" role="group" aria-label="Exchange"><button type="button" data-ex="NS">NSE</button><button type="button" data-ex="BO">BSE</button></div>
+    <div class="seg" id="rgSeg" role="group" aria-label="Chart range"><button type="button" data-r="1d">1D</button><button type="button" data-r="5d">5D</button><button type="button" data-r="1mo">1M</button></div>
   </div>
+  <div class="themes" id="themeBar" role="group" aria-label="Theme"></div>
 </header>
 <div id="banner" class="banner"></div>
-<main><div id="cards" class="cards"></div><div id="empty" class="empty" style="display:none">Search for a stock above to add it to your screen.</div></main>
+<main id="view"></main>
 <footer>1-hour candles in IST (09:15–10:15 … 15:15–15:30). <span id="rate"></span> Data: Yahoo Finance (NSE near real-time, BSE ~15 min delayed). Not investment advice.</footer>
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status"></div>
 
 <script>
 (() => {
 'use strict';
-const IST = 19800;                       // +05:30 in seconds
+const IST = 19800;
 const OPEN_MIN = 9*60+15, CLOSE_MIN = 15*60+30;
 const API = '/api';
-const LIVE_MS = 15000;               // Live switch on: refresh every 15 s while the market is open
-const NORMAL_MS = 60000;             // Live switch off: normal 1-hour candle view, refresh once a minute
-const IDLE_MS = 60000;               // market closed: just re-check the clock
+const LIVE_MS = 15000, NORMAL_MS = 60000, IDLE_MS = 60000;
+const HOURS = [0,1,2,3,4,5,6].map(b => OPEN_MIN + b*60);
 
-// Popular symbols for instant suggestions (also the demo-mode universe). p = rough price for demo only.
+const THEMES = [
+  { id:'classic',  name:'Classic',        sw:'linear-gradient(135deg,#0b0f17 50%,#60a5fa 50%)' },
+  { id:'heat',     name:'Heat Strip',     sw:'linear-gradient(135deg,#F4F6F9 50%,#16A34A 50%)' },
+  { id:'candle',   name:'Big Candle',     sw:'linear-gradient(135deg,#0D1117 50%,#3FB950 50%)' },
+  { id:'terminal', name:'Range Terminal', sw:'linear-gradient(135deg,#0A0A0A 50%,#FFB000 50%)' },
+  { id:'focus',    name:'Focus Swipe',    sw:'linear-gradient(135deg,#FFFFFF 50%,#4338CA 50%)' }
+];
+
 const LOCAL = [
  ['^NSEI','NIFTY 50',25700],['^BSESN','SENSEX',84000],['^NSEBANK','NIFTY BANK',57500],
  ['RELIANCE','Reliance Industries',1480],['TCS','Tata Consultancy Services',3050],['HDFCBANK','HDFC Bank',1000],
@@ -150,7 +285,7 @@ const LOCAL = [
  ['VEDL','Vedanta',490],['YESBANK','Yes Bank',22],['SUZLON','Suzlon Energy',60],['IDEA','Vodafone Idea',9]
 ].map(([s,n,p]) => ({s,n,p}));
 
-// ---------- state & storage ----------
+// ---------- state ----------
 const store = {
   get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
@@ -160,11 +295,14 @@ const S = {
   range: store.get('hc_range', '5d'),
   ex: store.get('hc_ex', 'NS'),
   live: store.get('hc_live', false),
-  demo: false,
-  cards: new Map(),
-  timer: null,
-  lastMeta: null
+  theme: store.get('hc_theme', 'classic'),
+  sel: store.get('hc_sel', null),
+  tbl: new Set(),
+  data: new Map(),
+  charts: new Map(),
+  demo: false, timer: null, lastMeta: null
 };
+if (!THEMES.some(t => t.id === S.theme)) S.theme = 'classic';
 
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
@@ -173,6 +311,10 @@ const fmt = v => (v==null||!isFinite(v)) ? '—' : nf.format(v);
 const sign = v => v>0?'+':'';
 const cls = v => v>0?'up':v<0?'down':'flat';
 const pct = (a,b) => (b ? (a-b)/b*100 : 0);
+function pctStr(a,b){ let v = pct(a,b); if (Math.abs(v) < 0.005) v = 0; return (v>0?'+':'') + v.toFixed(2) + '%'; }
+const chgStr = (a,b) => `${sign(a-b)}${fmt(a-b)} (${pctStr(a,b)})`;
+const col = v => v>=0 ? 'var(--up)' : 'var(--down)';
+const arrow = v => v>=0 ? '▲' : '▼';
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function ist(ts){ const d = new Date((ts+IST)*1000); return {y:d.getUTCFullYear(),mo:d.getUTCMonth(),d:d.getUTCDate(),h:d.getUTCHours(),mi:d.getUTCMinutes(),s:d.getUTCSeconds(),wd:d.getUTCDay()}; }
 const pad = n => String(n).padStart(2,'0');
@@ -181,13 +323,14 @@ const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','
 const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function dayLabel(key){ const [y,m,d] = key.split('-').map(Number); const dt = new Date(Date.UTC(y,m-1,d)); return WD[dt.getUTCDay()]+' '+d+' '+MON[m-1]; }
 function hm(min){ return pad(Math.floor(min/60))+':'+pad(min%60); }
+const hmShort = min => Math.floor(min/60)+':'+pad(min%60);
 const nowSec = () => Math.floor(Date.now()/1000);
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 2600); }
-function exOf(sym){ return sym.startsWith('^') ? (sym==='^BSESN'?'BSE':'INDEX') : sym.endsWith('.BO') ? 'BSE' : sym.endsWith('.NS') ? 'NSE' : ''; }
+function exOf(sym){ return sym.startsWith('^') ? 'INDEX' : sym.endsWith('.BO') ? 'BSE' : sym.endsWith('.NS') ? 'NSE' : ''; }
 function baseOf(sym){ return sym.replace(/\.(NS|BO)$/,''); }
 const IDX = {'^NSEI':'NIFTY 50','^BSESN':'SENSEX','^NSEBANK':'NIFTY BANK'};
 function label(sym){ return IDX[sym] || baseOf(sym).replace(/^\^/,''); }
-function pctStr(a,b){ let v = pct(a,b); if (Math.abs(v) < 0.005) v = 0; return (v>0?'+':'') + v.toFixed(2) + '%'; }
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
 function marketOpen(meta){
   const n = nowSec();
@@ -210,8 +353,6 @@ async function fetchChart(sym){
   if (S.demo) return demoChart(sym, S.range);
   return getJSON(API+'/chart?symbol='+encodeURIComponent(sym)+'&range='+S.range);
 }
-
-// Yahoo 60m JSON -> hourly candles aligned to the NSE session (09:15 start), merging any stray live ticks.
 function parseChart(j){
   const r = j && j.chart && j.chart.result && j.chart.result[0];
   if (!r) throw new Error((j && j.chart && j.chart.error && j.chart.error.description) || 'No data for this symbol');
@@ -221,20 +362,15 @@ function parseChart(j){
     const o=q.open&&q.open[i], h=q.high&&q.high[i], l=q.low&&q.low[i], c=q.close&&q.close[i], v=(q.volume&&q.volume[i])||0;
     if ([o,h,l,c].some(x => x==null || !isFinite(x))) continue;
     const p = ist(t[i]), mod = p.h*60+p.mi;
-    if (mod < 9*60 || mod > CLOSE_MIN) continue;      // keep a 09:00-stamped bar, if any, in the first hour
+    if (mod < 9*60 || mod > CLOSE_MIN) continue;
     const b = Math.max(0, Math.min(Math.floor((mod-OPEN_MIN)/60), 6));
-    const start = OPEN_MIN + b*60;
-    const day = dayKey(t[i]);
-    const key = day+'|'+b;
+    const start = OPEN_MIN + b*60, day = dayKey(t[i]), key = day+'|'+b;
     let k = map.get(key);
-    if (!k){ k = {day, b, start, end: Math.min(start+60, CLOSE_MIN), time: t[i] - ((mod-start)*60 + p.s), o, h, l, c, v}; map.set(key, k); }
-    else { if (t[i] < k._first) { k.o = o; } k.h = Math.max(k.h,h); k.l = Math.min(k.l,l); k.c = c; k.v += v; }
-    k._first = Math.min(k._first ?? t[i], t[i]);
+    if (!k){ k = {day, b, start, end: Math.min(start+60, CLOSE_MIN), time: t[i] - ((mod-start)*60 + p.s), o, h, l, c, v, _first: t[i]}; map.set(key, k); }
+    else { if (t[i] < k._first) { k.o = o; k._first = t[i]; } k.h = Math.max(k.h,h); k.l = Math.min(k.l,l); k.c = c; k.v += v; }
   }
-  const candles = [...map.values()].sort((a,b)=>a.time-b.time);
-  return {meta: r.meta || {}, candles};
+  return {meta: r.meta || {}, candles: [...map.values()].sort((a,b)=>a.time-b.time)};
 }
-
 function summarize(meta, candles){
   const last = candles[candles.length-1];
   if (!last) return null;
@@ -251,10 +387,12 @@ function summarize(meta, candles){
   const isToday = last.day === dayKey(nowSec());
   const forming = isToday && marketOpen(meta) && nowSec() < last.time + (last.end-last.start)*60;
   const prevHour = candles.length > 1 ? candles[candles.length-2] : null;
-  return {last, prevHour, today, prevClose, ltp, dayO, dayH, dayL, forming, isToday};
+  const byHour = HOURS.map((_, b) => today.find(c => c.b === b) || null);
+  const vol = today.reduce((a,c)=>a+c.v,0);
+  return {last, prevHour, today, byHour, prevClose, ltp, dayO, dayH, dayL, forming, isToday, vol};
 }
 
-// ---------- demo data (used when the page has no /api, e.g. opened as a plain file) ----------
+// ---------- demo data (preview without a host) ----------
 function hash(s){ let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h>>>0; }
 function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed>>>15, 1|seed); t = t + Math.imul(t ^ t>>>7, 61|t) ^ t; return ((t ^ t>>>14)>>>0)/4294967296; }; }
 function demoChart(sym, range){
@@ -275,176 +413,358 @@ function demoChart(sym, range){
   days.forEach((d, di) => {
     const mid = d/1000 - IST;
     const isToday = di === days.length-1 && todayOk;
-    const gap = (rnd()-0.5) * 0.012 * price;
-    price += gap;
+    price += (rnd()-0.5) * 0.012 * price;
     for (let b=0;b<7;b++){
       const start = OPEN_MIN + b*60;
       if (isToday && start > nowMin) break;
-      const o = price;
-      const vol = 0.006 * price;
-      let c = o + (rnd()-0.48) * vol * (b===6 ? 0.4 : 1);
+      const o = price, vol = 0.006 * price;
+      const c = o + (rnd()-0.48) * vol * (b===6 ? 0.4 : 1);
       const h = Math.max(o,c) + rnd()*vol*0.45, l = Math.min(o,c) - rnd()*vol*0.45;
-      if (di === 0) { if (b===6) { chartPrev = c; } price = c; continue; }
+      if (di === 0) { if (b===6) chartPrev = c; price = c; continue; }
       ts.push(mid + start*60); O.push(o); H.push(h); Lo.push(l); C.push(c); V.push(Math.round(5e5 + rnd()*3e6));
       price = c;
     }
     if (di === days.length-2) prevClose = price;
   });
   const last = ts.length-1;
-  const meta = { symbol: sym, currency:'INR', longName: L ? L.n : base, exchangeName: exOf(sym),
-    regularMarketPrice: C[last], regularMarketTime: ts[last] + 600, chartPreviousClose: range==='1d'?prevClose:chartPrev, previousClose: prevClose };
+  const meta = { symbol: sym, currency:'INR', longName: L ? L.n : base, regularMarketPrice: C[last], regularMarketTime: ts[last] + 600,
+    chartPreviousClose: range==='1d'?prevClose:chartPrev, previousClose: prevClose };
   return Promise.resolve({chart:{result:[{meta, timestamp:ts, indicators:{quote:[{open:O,high:H,low:Lo,close:C,volume:V}]}}], error:null}});
 }
 
-// ---------- cards ----------
-function makeCard(sym){
+// ---------- charts (lightweight-charts, reused across refreshes) ----------
+const CHART_STYLE = {
+  classic: { text:'#8b97b0', grid:'#182033', border:'#243049', up:'#22c55e', down:'#ef4444', pl:'#64748b' },
+  focus:   { text:'#4B5563', grid:'#F3F4F6', border:'#E5E7EB', up:'#15803D', down:'#B91C1C', pl:'#6B7280' }
+};
+function makeChart(kind){
+  const st = CHART_STYLE[kind];
   const el = document.createElement('div');
-  el.className = 'card';
-  el.innerHTML = `
-    <div class="chead">
-      <div class="cname"><div class="sym"><span>${esc(label(sym))}</span><span class="tag">${esc(exOf(sym)||'—')}</span></div><div class="full">&nbsp;</div></div>
-      <div class="price"><div class="ltp num">—</div><div class="chg num flat">&nbsp;</div></div>
-      <button class="x" title="Remove">×</button>
-    </div>
-    <div class="body"><div class="loading">Loading 1-hour candles…</div></div>
-    <div class="chartwrap"><div class="legend num"></div></div>
-    <div class="cfoot"><span class="muted vol"></span><button class="tblbtn">Hourly table ▾</button></div>
-    <div class="tbl"></div>`;
-  $('#cards').appendChild(el);
-  const wrap = el.querySelector('.chartwrap');
-  const chart = LightweightCharts.createChart(wrap, {
+  const leg = document.createElement('div'); leg.className = 'legend num'; el.appendChild(leg);
+  const chart = LightweightCharts.createChart(el, {
     autoSize: true,
-    layout: { background: {type:'solid', color:'transparent'}, textColor:'#8b97b0', fontSize: 11 },
-    grid: { vertLines: {color:'#182033'}, horzLines: {color:'#182033'} },
-    rightPriceScale: { borderColor:'#243049' },
-    timeScale: { borderColor:'#243049', timeVisible:true, secondsVisible:false, rightOffset: 2 },
+    layout: { background: {type:'solid', color:'transparent'}, textColor: st.text, fontSize: 11, fontFamily: getComputedStyle(document.body).fontFamily },
+    grid: { vertLines: {color: st.grid}, horzLines: {color: st.grid} },
+    rightPriceScale: { borderColor: st.border },
+    timeScale: { borderColor: st.border, timeVisible: true, secondsVisible: false, rightOffset: 2 },
     crosshair: { mode: 0 },
     localization: { priceFormatter: fmt }
   });
-  const series = chart.addCandlestickSeries({ upColor:'#22c55e', downColor:'#ef4444', borderVisible:false, wickUpColor:'#22c55e', wickDownColor:'#ef4444' });
-  const card = { sym, el, chart, series, data:null, priceLine:null, tblOpen:false };
+  const series = chart.addCandlestickSeries({ upColor: st.up, downColor: st.down, borderVisible: false, wickUpColor: st.up, wickDownColor: st.down });
+  const c = { el, leg, chart, series, priceLine: null, last: null, range: null, kind };
   chart.subscribeCrosshairMove(param => {
     const d = param && param.time ? param.seriesData.get(series) : null;
-    legend(card, d ? {time: d.time - IST, o:d.open, h:d.high, l:d.low, c:d.close} : null);
+    setLegend(c, d ? {time: d.time - IST, o: d.open, h: d.high, l: d.low, c: d.close} : c.last);
   });
-  el.querySelector('.x').onclick = () => removeSym(sym);
-  el.querySelector('.tblbtn').onclick = () => { card.tblOpen = !card.tblOpen; renderTable(card); };
-  S.cards.set(sym, card);
-  return card;
+  return c;
+}
+function setLegend(c, x){
+  if (!x) { c.leg.textContent = ''; return; }
+  const p = ist(x.time), ch = x.c - x.o;
+  c.leg.innerHTML = `<span style="opacity:.75">${WD[p.wd]} ${p.d} ${MON[p.mo]} ${pad(p.h)}:${pad(p.mi)}</span> O ${fmt(x.o)} H ${fmt(x.h)} L ${fmt(x.l)} C <b class="${cls(ch)}">${fmt(x.c)}</b> <span class="${cls(ch)}">${pctStr(x.c,x.o)}</span>`;
+}
+function mountCharts(){
+  const used = new Set();
+  document.querySelectorAll('#view [data-chart]').forEach(ph => {
+    const sym = ph.dataset.chart, kind = ph.dataset.kind, key = kind + '|' + sym;
+    const d = S.data.get(sym);
+    if (!d || !d.sum) return;
+    used.add(key);
+    let c = S.charts.get(key);
+    if (!c) { c = makeChart(kind); S.charts.set(key, c); }
+    ph.appendChild(c.el);
+    c.series.setData(d.candles.map(x => ({time: x.time + IST, open: x.o, high: x.h, low: x.l, close: x.c})));
+    if (c.priceLine) { c.series.removePriceLine(c.priceLine); c.priceLine = null; }
+    if (d.sum.prevClose) c.priceLine = c.series.createPriceLine({price: d.sum.prevClose, color: CHART_STYLE[kind].pl, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Prev close'});
+    if (c.range !== S.range) {
+      const n = d.candles.length, show = Math.min(n, S.range === '1mo' ? 70 : 40);
+      c.chart.timeScale().setVisibleLogicalRange({from: n - show - 0.5, to: n + 1.5});
+      c.range = S.range;
+    }
+    const L = d.sum.last; c.last = {time: L.time, o: L.o, h: L.h, l: L.l, c: L.c};
+    setLegend(c, c.last);
+  });
+  for (const [key, c] of S.charts) if (!used.has(key)) { c.chart.remove(); S.charts.delete(key); }
 }
 
-function legend(card, c){
-  const L = card.el.querySelector('.legend');
-  if (!c && card.data && card.data.sum) { const x = card.data.sum.last; c = {time:x.time, o:x.o, h:x.h, l:x.l, c:x.c}; }
-  if (!c) { L.textContent = ''; return; }
-  const p = ist(c.time), ch = c.c - c.o;
-  L.innerHTML = `<span style="color:#8b97b0">${WD[p.wd]} ${p.d} ${MON[p.mo]} ${pad(p.h)}:${pad(p.mi)}</span> &nbsp;O ${fmt(c.o)} H ${fmt(c.h)} L ${fmt(c.l)} C <b class="${cls(ch)}">${fmt(c.c)}</b> <span class="${cls(ch)}">${pctStr(c.c,c.o)}</span>`;
+// ---------- shared view bits ----------
+function info(sym){ const d = S.data.get(sym); return d || null; }
+function hourLabel(c){ return `${hm(c.start)}–${hm(c.end)}`; }
+function selSym(){ if (!S.list.includes(S.sel)) S.sel = S.list[0] || null; return S.sel; }
+function stateBox(sym, cssClass){
+  const d = info(sym);
+  if (!d) return `<div class="${cssClass||'loadcard'}">Loading ${esc(label(sym))}…</div>`;
+  if (d.error) return `<div class="${cssClass||'loadcard'}"><span class="errtxt">${esc(d.error)}</span> <button class="linkbtn" data-act="remove" data-sym="${esc(sym)}">Remove</button></div>`;
+  return `<div class="${cssClass||'loadcard'}">No hourly candles for ${esc(label(sym))} in this range.</div>`;
 }
+const ok = sym => { const d = info(sym); return d && !d.error && d.sum; };
+const nameOf = sym => { const d = info(sym); return (d && d.meta && (d.meta.longName || d.meta.shortName)) || label(sym); };
 
-function hourBox(c, title, live, isCur){
-  if (!c) return `<div class="hbox"><div class="lbl">${title}</div><div class="ohlc"><i>—</i><b></b></div></div>`;
+// ---------- theme: Classic ----------
+function classicHourBox(c, title, live, cur){
+  if (!c) return `<div class="c-hbox"><div class="lbl">${title}</div><div class="c-ohlc"><i>—</i><b></b></div></div>`;
   const ch = c.c - c.o;
-  return `<div class="hbox${isCur?' cur':''}">
-    <div class="lbl"><span>${title}</span><span>${hm(c.start)}–${hm(c.end)}${live?' <span class="live">● live</span>':''}</span></div>
-    <div class="ohlc num"><i>Open</i><b>${fmt(c.o)}</b><i>High</i><b>${fmt(c.h)}</b><i>Low</i><b>${fmt(c.l)}</b><i>${live?'Now':'Close'}</i><b class="${cls(ch)}">${fmt(c.c)}</b></div>
-    <div class="hchg num ${cls(ch)}">${ch>=0?'▲':'▼'} ${sign(ch)}${fmt(ch)} (${pctStr(c.c,c.o)})</div>
-  </div>`;
+  return `<div class="c-hbox${cur?' cur':''}"><div class="lbl"><span>${title}</span><span>${hourLabel(c)}${live?' <span class="livetxt">● live</span>':''}</span></div>
+    <div class="c-ohlc num"><i>Open</i><b>${fmt(c.o)}</b><i>High</i><b>${fmt(c.h)}</b><i>Low</i><b>${fmt(c.l)}</b><i>${live?'Now':'Close'}</i><b class="${cls(ch)}">${fmt(c.c)}</b></div>
+    <div class="c-hchg num ${cls(ch)}">${arrow(ch)} ${chgStr(c.c,c.o)}</div></div>`;
 }
-
-function renderCard(card){
-  const {meta, candles, sum, error} = card.data || {};
-  const body = card.el.querySelector('.body');
-  if (error){ body.innerHTML = `<div class="cerr">${esc(error)}</div>`; return; }
-  if (!sum){ body.innerHTML = `<div class="cerr">No hourly candles for this range.</div>`; return; }
-  card.el.querySelector('.full').textContent = meta.longName || meta.shortName || card.sym;
-  const chg = sum.ltp - sum.prevClose;
-  card.el.querySelector('.ltp').textContent = fmt(sum.ltp);
-  const ce = card.el.querySelector('.chg');
-  ce.className = 'chg num ' + cls(chg);
-  ce.textContent = sum.prevClose ? `${sign(chg)}${fmt(chg)} (${pctStr(sum.ltp,sum.prevClose)})` : '';
-  const upN = sum.today.filter(c=>c.c>c.o).length, dnN = sum.today.filter(c=>c.c<c.o).length;
-  const chips = sum.today.map((c,i) => {
-    const pv = Math.round(pct(c.c,c.o)*10)/10;
-    const k = pv>0?'u':pv<0?'d':'f';
-    const isF = sum.forming && i===sum.today.length-1;
-    return `<div class="chip ${k}${isF?' forming':''}" title="${hm(c.start)}–${hm(c.end)}  O ${fmt(c.o)}  C ${fmt(c.c)}">${hm(c.start)}<br>${k==='u'?'▲':k==='d'?'▼':'■'} ${Math.abs(pv).toFixed(1)}%</div>`;
-  }).join('');
-  body.innerHTML = `
-    <div class="stats num">
-      <div class="stat"><span>Day open</span><b>${fmt(sum.dayO)}</b></div>
-      <div class="stat"><span>Day high</span><b class="up">${fmt(sum.dayH)}</b></div>
-      <div class="stat"><span>Day low</span><b class="down">${fmt(sum.dayL)}</b></div>
-      <div class="stat"><span>Prev close</span><b>${fmt(sum.prevClose)}</b></div>
-    </div>
-    <div class="sess">${sum.isToday ? 'Today' : 'Last session'} · ${dayLabel(sum.last.day)} · hourly trend: <span class="up">${upN} up</span> / <span class="down">${dnN} down</span></div>
-    <div class="trend">${chips}</div>
-    <div class="hours">
-      ${hourBox(sum.last, sum.forming ? 'This hour' : 'Last hour', sum.forming, true)}
-      ${hourBox(sum.prevHour, 'Prev hour', false, false)}
-    </div>`;
-  card.series.setData(candles.map(c => ({time: c.time + IST, open:c.o, high:c.h, low:c.l, close:c.c})));
-  if (card.priceLine) { card.series.removePriceLine(card.priceLine); card.priceLine = null; }
-  if (sum.prevClose) card.priceLine = card.series.createPriceLine({price: sum.prevClose, color:'#64748b', lineWidth:1, lineStyle:2, axisLabelVisible:true, title:'Prev close'});
-  if (!card._fitted || card._range !== S.range) {
-    const n = candles.length, show = Math.min(n, S.range==='1mo' ? 70 : 40);
-    card.chart.timeScale().setVisibleLogicalRange({from: n - show - 0.5, to: n + 1.5});
-    card._fitted = true; card._range = S.range;
-  }
-  const vol = sum.today.reduce((a,c)=>a+c.v,0);
-  card.el.querySelector('.vol').textContent = vol ? 'Day volume ' + new Intl.NumberFormat('en-IN').format(vol) : '';
-  legend(card, null);
-  renderTable(card);
-}
-
-function renderTable(card){
-  const box = card.el.querySelector('.tbl'), btn = card.el.querySelector('.tblbtn');
-  box.classList.toggle('show', card.tblOpen);
-  btn.textContent = card.tblOpen ? 'Hide table ▴' : 'Hourly table ▾';
-  if (!card.tblOpen || !card.data || !card.data.candles) { if(!card.tblOpen) box.innerHTML=''; return; }
-  const {candles, sum} = card.data;
+function classicTable(sym){
+  const d = info(sym); if (!S.tbl.has(sym) || !ok(sym)) return '';
   const byDay = new Map();
-  candles.forEach(c => { if (!byDay.has(c.day)) byDay.set(c.day, []); byDay.get(c.day).push(c); });
+  d.candles.forEach(c => { if (!byDay.has(c.day)) byDay.set(c.day, []); byDay.get(c.day).push(c); });
   let rows = '';
   [...byDay.keys()].sort().reverse().forEach(day => {
     rows += `<tr class="day"><td colspan="6">${dayLabel(day)}</td></tr>`;
     byDay.get(day).slice().reverse().forEach(c => {
-      const ch = c.c - c.o;
-      const live = sum && sum.forming && c === sum.last;
-      rows += `<tr class="num"><td>${hm(c.start)}${live?' <span class="live">●</span>':''}</td><td>${fmt(c.o)}</td><td>${fmt(c.h)}</td><td>${fmt(c.l)}</td><td class="${cls(ch)}">${fmt(c.c)}</td><td class="${cls(ch)}">${pctStr(c.c,c.o)}</td></tr>`;
+      const ch = c.c - c.o, live = d.sum.forming && c === d.sum.last;
+      rows += `<tr class="num"><td>${hm(c.start)}${live?' <span class="livetxt">●</span>':''}</td><td>${fmt(c.o)}</td><td>${fmt(c.h)}</td><td>${fmt(c.l)}</td><td class="${cls(ch)}">${fmt(c.c)}</td><td class="${cls(ch)}">${pctStr(c.c,c.o)}</td></tr>`;
     });
   });
-  box.innerHTML = `<table><thead><tr><th>Hour</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Chg</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<div class="tbl"><table><thead><tr><th>Hour</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Chg</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderClassic(){
+  return `<div class="c-grid">${S.list.map(sym => {
+    const head = (d) => `<div class="c-head"><div class="c-name"><div class="c-sym"><span>${esc(label(sym))}</span><span class="tag">${exOf(sym)}</span></div><div class="c-full">${esc(nameOf(sym))}</div></div>
+      ${d ? `<div><div class="c-ltp num">${fmt(d.ltp)}</div><div class="c-chg num ${cls(d.ltp-d.prevClose)}">${d.prevClose ? chgStr(d.ltp, d.prevClose) : ''}</div></div>` : ''}
+      <button class="x" data-act="remove" data-sym="${esc(sym)}" aria-label="Remove ${esc(label(sym))}">×</button></div>`;
+    if (!ok(sym)) return `<div class="c-card">${head(null)}${stateBox(sym, '')}</div>`;
+    const d = info(sym).sum;
+    const upN = d.today.filter(c=>c.c>c.o).length, dnN = d.today.filter(c=>c.c<c.o).length;
+    const chips = d.today.map((c,i) => { const k = c.c>c.o?'u':c.c<c.o?'d':'f'; const f = d.forming && i===d.today.length-1;
+      return `<div class="c-chip ${k}${f?' forming':''}" title="${hourLabel(c)}">${hm(c.start)}<br>${k==='u'?'▲':k==='d'?'▼':'■'} ${Math.abs(pct(c.c,c.o)).toFixed(1)}%</div>`; }).join('');
+    return `<div class="c-card">${head(d)}
+      <div class="c-stats num"><div class="c-stat"><span>Day open</span><b>${fmt(d.dayO)}</b></div><div class="c-stat"><span>Day high</span><b class="up">${fmt(d.dayH)}</b></div><div class="c-stat"><span>Day low</span><b class="down">${fmt(d.dayL)}</b></div><div class="c-stat"><span>Prev close</span><b>${fmt(d.prevClose)}</b></div></div>
+      <div class="c-sess">${d.isToday?'Today':'Last session'} · ${dayLabel(d.last.day)} · hourly trend: <span class="up">${upN} up</span> / <span class="down">${dnN} down</span></div>
+      <div class="c-trend">${chips}</div>
+      <div class="c-hours">${classicHourBox(d.last, d.forming?'This hour':'Last hour', d.forming, true)}${classicHourBox(d.prevHour,'Prev hour',false,false)}</div>
+      <div class="chartbox" data-chart="${esc(sym)}" data-kind="classic"></div>
+      <div class="c-foot"><span>${d.vol ? 'Day volume ' + new Intl.NumberFormat('en-IN').format(d.vol) : ''}</span><button type="button" data-act="tbl" data-sym="${esc(sym)}">${S.tbl.has(sym)?'Hide table ▴':'Hourly table ▾'}</button></div>
+      ${classicTable(sym)}</div>`;
+  }).join('')}</div>`;
 }
 
-async function loadCard(card){
+// ---------- theme: Heat Strip ----------
+function heatCell(c, live){
+  if (!c) return `<div class="h-cell e">–</div>`;
+  const q = pct(c.c, c.o), a = Math.min(0.14 + Math.abs(q)*0.8, 0.55);
+  const bg = q >= 0 ? `rgba(22,163,74,${a.toFixed(2)})` : `rgba(220,38,38,${a.toFixed(2)})`;
+  return `<div class="h-cell num${live?' live':''}" style="background:${bg};color:${q>=0?'#14532D':'#7F1D1D'}" title="${hourLabel(c)} O ${fmt(c.o)} C ${fmt(c.c)}">${q>=0?'▲':'▼'}\n${Math.abs(q).toFixed(2)}</div>`;
+}
+function heatBox(c, title, live){
+  if (!c) return `<div class="h-box"><div class="lbl"><span>${title}</span></div><span style="color:var(--muted)">—</span></div>`;
+  const ch = c.c - c.o;
+  return `<div class="h-box${live?' cur':''}"><div class="lbl"><span>${title}</span><span>${hourLabel(c)}${live?' · live':''}</span></div>
+    <div class="kv num"><span>Open</span><span>${fmt(c.o)}</span></div><div class="kv num"><span>High</span><span>${fmt(c.h)}</span></div>
+    <div class="kv num"><span>Low</span><span>${fmt(c.l)}</span></div><div class="kv num"><span>${live?'Now':'Close'}</span><span class="${cls(ch)}">${fmt(c.c)}</span></div>
+    <span class="num ${cls(ch)}" style="font-size:12px;font-weight:800;text-align:right">${arrow(ch)} ${chgStr(c.c,c.o)}</span></div>`;
+}
+function renderHeat(){
+  const sel = selSym();
+  let anyDay = null;
+  const rows = S.list.map(sym => {
+    const isSel = sym === sel;
+    if (!ok(sym)) { const d = info(sym); return `<button type="button" class="h-row${isSel?' sel':''}" data-act="sel" data-sym="${esc(sym)}"><div class="h-name"><b>${esc(label(sym))}</b><span style="color:var(--muted)">${d && d.error ? 'Not found' : 'Loading…'}</span></div>${'<div class="h-cell e">·</div>'.repeat(7)}</button>`; }
+    const d = info(sym).sum; anyDay = anyDay || d;
+    const ch = d.ltp - d.prevClose;
+    return `<button type="button" class="h-row${isSel?' sel':''}" data-act="sel" data-sym="${esc(sym)}" aria-pressed="${isSel}">
+      <div class="h-name"><b>${esc(label(sym))}</b><span class="num" style="color:var(--text);font-weight:600">${fmt(d.ltp)}</span><span class="num ${cls(ch)}" style="font-weight:700">${sign(ch)}${pct(d.ltp,d.prevClose).toFixed(2)}%</span></div>
+      ${d.byHour.map((c,j) => heatCell(c, d.forming && c === d.last)).join('')}</button>`;
+  }).join('');
+  const matrix = `<section class="h-card">
+    <div class="h-title"><h2>${anyDay ? (anyDay.isToday ? 'Today' : 'Last session · ' + dayLabel(anyDay.last.day)) : 'Today'}, hour by hour</h2><span>% move in each hour</span></div>
+    <div class="h-cols"><span>Stock</span>${HOURS.map(m => `<span>${hmShort(m)}</span>`).join('')}</div>
+    ${rows || '<div class="empty">Search for a stock above to add it.</div>'}
+    <div class="h-legend"><span>▲ green: price rose in that hour</span><span>▼ red: price fell</span><span>Darker = bigger move</span><span style="color:#92400E">Dashed = hour still running</span><span>Tap a row for details</span></div>
+  </section>`;
+  let det = '';
+  if (sel && ok(sel)) {
+    const d = info(sel).sum, ch = d.ltp - d.prevClose;
+    const span = (d.dayH - d.dayL) || 1, pos = v => clamp((v - d.dayL)/span*100, 0, 100);
+    const a = Math.min(pos(d.dayO), pos(d.ltp)), b = Math.max(pos(d.dayO), pos(d.ltp));
+    const fillC = d.ltp >= d.dayO ? 'rgba(22,163,74,.45)' : 'rgba(220,38,38,.40)';
+    det = `<section class="h-card h-det">
+      <div class="top"><div><div style="font-size:11.5px;color:var(--muted);font-weight:600">Selected stock</div><h2 style="margin:0;font-size:18px;font-weight:800">${esc(label(sel))}</h2><div style="font-size:12px;color:var(--muted)">${esc(nameOf(sel))}</div></div>
+        <div style="text-align:right"><div class="num" style="font-size:22px;font-weight:800">${fmt(d.ltp)}</div><div class="num ${cls(ch)}" style="font-size:12.5px;font-weight:700">${chgStr(d.ltp, d.prevClose)}</div></div></div>
+      <div class="h-two">${heatBox(d.last, d.forming?'This hour':'Last hour', d.forming)}${heatBox(d.prevHour, 'Previous hour', false)}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:12px;font-weight:700">Where is it today? (day low → day high)</span>
+        <div class="rbar">
+          <div style="position:absolute;top:0;bottom:0;left:${a.toFixed(1)}%;width:${(b-a).toFixed(1)}%;background:${fillC};border-radius:6px"></div>
+          <div style="position:absolute;top:-5px;left:${pos(d.prevClose).toFixed(1)}%;height:22px;border-left:2px dashed #475569"></div>
+          <div style="position:absolute;top:-5px;left:${pos(d.dayO).toFixed(1)}%;width:2px;height:22px;margin-left:-1px;background:#0F172A"></div>
+          <div style="position:absolute;top:50%;left:${pos(d.ltp).toFixed(1)}%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#1D4ED8;border:3px solid #fff;box-shadow:0 0 0 1px #1D4ED8"></div>
+        </div>
+        <div class="num" style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span class="down">Low ${fmt(d.dayL)}</span><span class="up">High ${fmt(d.dayH)}</span></div>
+        <div class="rkey num"><span><i style="width:10px;height:10px;border-radius:50%;background:#1D4ED8;display:inline-block"></i>Now ${fmt(d.ltp)}</span><span><i style="width:2px;height:12px;background:#0F172A;display:inline-block"></i>Open ${fmt(d.dayO)}</span><span><i style="height:12px;border-left:2px dashed #475569;display:inline-block"></i>Prev close ${fmt(d.prevClose)}</span></div>
+      </div>
+      <div><button type="button" class="linkbtn" data-act="remove" data-sym="${esc(sel)}">Remove ${esc(label(sel))} from list</button></div>
+    </section>`;
+  } else if (sel) det = stateBox(sel, 'h-card');
+  return `<div class="h-wrap">${matrix}${det}</div>`;
+}
+
+// ---------- theme: Big Candle ----------
+function bigCandle(d){
+  const c = d.last, up = c.c >= c.o, k = col(c.c - c.o);
+  const span = (c.h - c.l) || 1, y = v => 10 + (c.h - v)/span*130;
+  const top = y(Math.max(c.o,c.c)), bot = y(Math.min(c.o,c.c));
+  const nowK = d.forming ? 'Now' : 'Close';
+  const order = up ? [['High',c.h],[nowK,c.c],['Open',c.o],['Low',c.l]] : [['High',c.h],['Open',c.o],[nowK,c.c],['Low',c.l]];
+  return `<div class="b-cbox" role="img" aria-label="Hour candle: open ${fmt(c.o)}, high ${fmt(c.h)}, low ${fmt(c.l)}, ${nowK.toLowerCase()} ${fmt(c.c)}">
+    <div style="position:absolute;left:33px;width:2px;background:${k};top:${y(c.h).toFixed(1)}px;height:${(y(c.l)-y(c.h)).toFixed(1)}px"></div>
+    <div style="position:absolute;left:20px;width:28px;border-radius:4px;background:${k};top:${top.toFixed(1)}px;height:${Math.max(3,bot-top).toFixed(1)}px"></div>
+    ${order.map((e,i) => `<div class="b-lab" style="top:${6+i*36}px"><span>${e[0]}</span><span class="num" style="color:${e[0]===nowK?k:'var(--text)'}">${fmt(e[1])}</span></div>`).join('')}
+  </div>`;
+}
+function minisHTML(d, boxCls, h, showPct){
+  const span = (d.dayH - d.dayL) || 1, my = v => 4 + (d.dayH - v)/span*(h-8);
+  return HOURS.map((m, j) => {
+    const c = d.byHour[j], live = d.forming && c === d.last;
+    if (!c) return `<div class="${boxCls[0]}"><div class="${boxCls[1]} e"></div>${showPct?'<span style="font-size:10.5px;color:#525252">··</span>':''}<small style="font-size:10.5px;color:var(--muted)">${hmShort(m)}</small></div>`;
+    const k = col(c.c - c.o), bt = my(Math.max(c.o,c.c)), bb = my(Math.min(c.o,c.c)), bw = boxCls[2];
+    return `<div class="${boxCls[0]}" title="${hourLabel(c)} O ${fmt(c.o)} H ${fmt(c.h)} L ${fmt(c.l)} C ${fmt(c.c)}"><div class="${boxCls[1]}${live?' live':''}">
+      <div style="position:absolute;left:50%;margin-left:-1px;width:${bw>8?2:1}px;background:${k};top:${my(c.h).toFixed(1)}px;height:${Math.max(1,my(c.l)-my(c.h)).toFixed(1)}px"></div>
+      <div style="position:absolute;left:50%;margin-left:${-bw/2}px;width:${bw}px;border-radius:2px;background:${k};top:${bt.toFixed(1)}px;height:${Math.max(1.5,bb-bt).toFixed(1)}px"></div></div>
+      ${showPct?`<span class="num" style="font-size:10.5px;font-weight:700;color:${k}">${pctStr(c.c,c.o).replace('%','')}</span>`:''}
+      <small style="font-size:10.5px;font-weight:600;color:${live?'var(--live)':'var(--muted)'}">${hmShort(m)}</small></div>`;
+  }).join('');
+}
+function renderCandle(){
+  return `<div class="b-grid">${S.list.map(sym => {
+    const head = d => `<div class="b-head"><div><div style="display:flex;align-items:center;gap:6px"><h2>${esc(label(sym))}</h2><span class="tag">${exOf(sym)}</span></div><div style="font-size:12px;color:var(--muted)">${esc(nameOf(sym))}</div></div>
+      <div style="display:flex;gap:4px;align-items:flex-start">${d ? `<div style="text-align:right"><div class="num" style="font-size:22px;font-weight:700">${fmt(d.ltp)}</div><div class="num ${cls(d.ltp-d.prevClose)}" style="font-size:12.5px;font-weight:700">${chgStr(d.ltp,d.prevClose)} today</div></div>` : ''}
+      <button class="x" data-act="remove" data-sym="${esc(sym)}" aria-label="Remove ${esc(label(sym))}">×</button></div></div>`;
+    if (!ok(sym)) return `<article class="b-card">${head(null)}${stateBox(sym,'')}</article>`;
+    const d = info(sym).sum, c = d.last, hc = c.c - c.o, p = d.prevHour;
+    return `<article class="b-card">${head(d)}
+      <div class="b-mid">${bigCandle(d)}
+        <div class="b-info">
+          <span style="font-size:11.5px;font-weight:700;color:var(--accent);letter-spacing:.3px">${d.forming?'THIS HOUR':'LAST HOUR'} ${hourLabel(c)} · ${d.forming?'LIVE':'CLOSED'}</span>
+          <span class="num ${cls(hc)}" style="font-size:20px;font-weight:700">${arrow(hc)} ${chgStr(c.c,c.o)}</span>
+          <span style="font-size:13px;line-height:1.4;opacity:.9">Opened ${d.forming?'this hour':'that hour'} at ${fmt(c.o)}, ${d.forming?'now':'closed'} ${hc>=0?'higher':'lower'} at ${fmt(c.c)}.</span>
+          ${p ? `<span style="font-size:12px;color:var(--muted)">Hour before: <b class="${cls(p.c-p.o)}">${arrow(p.c-p.o)} ${pctStr(p.c,p.o)}</b></span>` : ''}
+        </div></div>
+      <div class="b-stats num"><div><span>OPEN</span><b>${fmt(d.dayO)}</b></div><div><span>HIGH</span><b class="up">${fmt(d.dayH)}</b></div><div><span>LOW</span><b class="down">${fmt(d.dayL)}</b></div><div><span>PREV CL</span><b>${fmt(d.prevClose)}</b></div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--muted);font-weight:600">${d.isToday?"Today's":dayLabel(d.last.day)} hours, one candle each</span>
+        <div class="b-minis">${minisHTML(d, ['mini','mbox',12], 56, false)}</div></div>
+    </article>`;
+  }).join('')}</div>`;
+}
+
+// ---------- theme: Range Terminal ----------
+function renderTerminal(){
+  const blocks = S.list.map(sym => {
+    const top = d => `<div class="t-top"><h2>${esc(label(sym).replace(/\s/g,''))}</h2><div style="display:flex;gap:10px;align-items:center" class="num">
+      ${d ? `<span style="font-size:15px;font-weight:700">${fmt(d.ltp)}</span><span class="${cls(d.ltp-d.prevClose)}" style="font-size:13px;font-weight:800">${pctStr(d.ltp,d.prevClose)}</span>` : ''}
+      <button class="x" data-act="remove" data-sym="${esc(sym)}" aria-label="Remove ${esc(label(sym))}">×</button></div></div>`;
+    if (!ok(sym)) return `<section class="t-blk">${top(null)}${stateBox(sym,'')}</section>`;
+    const d = info(sym).sum, c = d.last;
+    const lo = Math.min(d.dayL, d.prevClose ?? d.dayL), hi = Math.max(d.dayH, d.prevClose ?? d.dayH), span = (hi-lo)||1;
+    const pos = v => ((v-lo)/span*100).toFixed(1)+'%';
+    const a = Math.min(d.dayO, d.ltp), b = Math.max(d.dayO, d.ltp);
+    return `<section class="t-blk">${top(d)}
+      <div><div class="t-rng" role="img" aria-label="Day range ${fmt(d.dayL)} to ${fmt(d.dayH)}, now ${fmt(d.ltp)}">
+        <div class="trk"></div>
+        <div style="position:absolute;top:13px;height:4px;left:${pos(a)};width:${((b-a)/span*100).toFixed(1)}%;background:${col(d.ltp-d.prevClose)}"></div>
+        ${d.prevClose ? `<div style="position:absolute;top:8px;height:14px;left:${pos(d.prevClose)};border-left:1px dashed var(--muted)"></div>` : ''}
+        <div style="position:absolute;top:8px;height:14px;width:2px;margin-left:-1px;left:${pos(d.dayO)};background:var(--text)"></div>
+        <div style="position:absolute;top:-3px;left:${pos(d.ltp)};width:14px;margin-left:-7px;text-align:center;font-size:12px;line-height:14px;color:var(--accent)">▼</div>
+      </div>
+      <div class="t-lbls num"><span class="down">L ${fmt(d.dayL)}</span><span style="color:var(--muted)">PC ${fmt(d.prevClose)} · O ${fmt(d.dayO)}</span><span class="up">H ${fmt(d.dayH)}</span></div></div>
+      <div class="t-minis">${minisHTML(d, ['t-mini','t-mbox',8], 36, true)}</div>
+      <div class="t-ohlc num"><span class="hr">${d.forming?'NOW':'LAST'} ${hmShort(c.start)}</span><span><i>O </i>${fmt(c.o)}</span><span><i>H </i>${fmt(c.h)}</span><span><i>L </i>${fmt(c.l)}</span><span class="${cls(c.c-c.o)}" style="font-weight:700"><i>C </i>${fmt(c.c)}</span></div>
+    </section>`;
+  }).join('');
+  return `<div class="t-wrap"><div class="t-hdr"><span>SYMBOL · DAY RANGE · 1H CANDLES</span><span>LTP / CHG</span></div>${blocks}
+    <div class="t-key"><span><span style="color:var(--accent)">▼</span> now</span><span>| open</span><span>┊ prev close</span><span>dashed box = hour in progress</span></div></div>`;
+}
+
+// ---------- theme: Focus Swipe ----------
+function renderFocus(){
+  const sel = selSym();
+  const chips = S.list.map(sym => {
+    const d = ok(sym) ? info(sym).sum : null, on = sym === sel;
+    const p = d ? pctStr(d.ltp, d.prevClose) : '…';
+    const pc = d ? (on ? (d.ltp>=d.prevClose?'#86EFAC':'#FCA5A5') : col(d.ltp-d.prevClose)) : 'var(--muted)';
+    return `<button type="button" class="f-chip${on?' on':''}" data-act="sel" data-sym="${esc(sym)}" aria-pressed="${on}"><b>${esc(label(sym))}</b><span class="num" style="font-size:11.5px;font-weight:700;color:${pc}">${p}</span></button>`;
+  }).join('') + `<button type="button" class="f-chip add" data-act="add" aria-label="Add stock"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>`;
+  if (!sel) return `<div class="f-wrap"><div class="f-chips">${chips}</div><div class="empty">Search for a stock above to add it.</div></div>`;
+  if (!ok(sel)) return `<div class="f-wrap"><div class="f-chips">${chips}</div>${stateBox(sel)}</div>`;
+  const d = info(sel).sum, c = d.last, ch = d.ltp - d.prevClose, hc = c.c - c.o;
+  const total = (c.end - c.start), el = clamp(Math.floor((nowSec() - c.time)/60), 0, total);
+  const span = (d.dayH - d.dayL) || 1, pos = v => clamp((v - d.dayL)/span*100, 0, 100);
+  const hours = HOURS.map((m, j) => {
+    const x = d.byHour[j];
+    if (!x) return `<div class="f-hr"><span style="font-size:12.5px;font-weight:600;color:var(--muted)">${hmShort(m)}</span><div class="f-trk"></div><span style="font-size:12px;color:var(--muted);text-align:right">${d.isToday?'later':'—'}</span></div>`;
+    const k = col(x.c - x.o), live = d.forming && x === d.last, a = pos(Math.min(x.o,x.c)), b = pos(Math.max(x.o,x.c));
+    return `<div class="f-hr" title="${hourLabel(x)} O ${fmt(x.o)} H ${fmt(x.h)} L ${fmt(x.l)} C ${fmt(x.c)}"><span style="font-size:12.5px;font-weight:700;color:${live?'var(--accent)':'var(--text)'}">${hmShort(m)}</span>
+      <div class="f-trk"><div style="position:absolute;top:6px;height:2px;background:${k};left:${pos(x.l).toFixed(1)}%;width:${(pos(x.h)-pos(x.l)).toFixed(1)}%"></div>
+      <div style="position:absolute;top:1px;height:12px;border-radius:3px;background:${k};left:${a.toFixed(1)}%;width:${Math.max(1.5,b-a).toFixed(1)}%${live?';outline:2px dashed var(--accent);outline-offset:2px':''}"></div></div>
+      <span class="num" style="font-size:12.5px;font-weight:800;text-align:right;color:${k}">${pctStr(x.c,x.o)}</span></div>`;
+  }).join('');
+  const idx = S.list.indexOf(sel);
+  return `<div class="f-wrap" id="fwrap">
+    <div class="f-chips">${chips}</div>
+    <div class="f-hero"><div class="nm"><span>${esc(nameOf(sel))} · ${exOf(sel)}</span><button type="button" class="linkbtn" data-act="remove" data-sym="${esc(sel)}">Remove</button></div>
+      <span class="f-price num">₹${fmt(d.ltp)}</span>
+      <span class="f-pill num ${ch>=0?'u':'d'}">${arrow(ch)} ${chgStr(d.ltp, d.prevClose)} ${d.isToday?'today':''}</span></div>
+    <section class="f-chart"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--muted)"><span>1-hour candles</span><span>Tap a candle for its prices</span></div>
+      <div class="chartbox" data-chart="${esc(sel)}" data-kind="focus"></div></section>
+    <section class="f-now">
+      <div class="row"><div><div class="k">${d.forming?'THIS HOUR · LIVE':'LAST HOUR · CLOSED'}</div><div class="t">${hm(c.start)} → ${hm(c.end)}</div></div><span class="num ${cls(hc)}" style="font-size:18px;font-weight:800">${arrow(hc)} ${pctStr(c.c,c.o)}</span></div>
+      ${d.forming ? `<div style="display:flex;flex-direction:column;gap:4px"><div class="f-prog"><div style="width:${(el/total*100).toFixed(0)}%"></div></div><span style="font-size:11.5px;color:var(--accent);font-weight:600">${el} min in · candle closes in ${total-el} min</span></div>` : ''}
+      <div class="f-tiles num"><div><span>Open</span><b>${fmt(c.o)}</b></div><div><span>High</span><b>${fmt(c.h)}</b></div><div><span>Low</span><b>${fmt(c.l)}</b></div><div><span>${d.forming?'Now':'Close'}</span><b class="${cls(hc)}">${fmt(c.c)}</b></div></div>
+    </section>
+    <div class="f-tiles num"><div><span>Day open</span><b>${fmt(d.dayO)}</b></div><div><span>Day high</span><b class="up">${fmt(d.dayH)}</b></div><div><span>Day low</span><b class="down">${fmt(d.dayL)}</b></div><div><span>Prev close</span><b>${fmt(d.prevClose)}</b></div></div>
+    <section class="f-hours"><div style="display:flex;justify-content:space-between;align-items:baseline"><h2>Hour by hour</h2><span style="font-size:11.5px;color:var(--muted)">bar = day low → day high</span></div>${hours}</section>
+    <div class="f-dots">${S.list.map((s,i) => `<i class="${i===idx?'on':''}"></i>`).join('')}<span style="margin-left:6px">Swipe or tap a chip for the next stock</span></div>
+  </div>`;
+}
+
+const RENDER = { classic: renderClassic, heat: renderHeat, candle: renderCandle, terminal: renderTerminal, focus: renderFocus };
+
+function keepVisible(box, el){
+  if (!box || !el) return;
+  const l = el.offsetLeft - box.offsetLeft, r = l + el.offsetWidth;
+  if (l < box.scrollLeft) box.scrollLeft = l - 8;
+  else if (r > box.scrollLeft + box.clientWidth) box.scrollLeft = r - box.clientWidth + 8;
+}
+function render(){
+  document.body.dataset.theme = S.theme;
+  const v = $('#view');
+  if (!S.list.length && S.theme !== 'focus' && S.theme !== 'heat') { v.innerHTML = '<div class="empty">Search for a stock above to add it to your screen.</div>'; mountCharts(); return; }
+  const scroller = v.querySelector('.f-chips'), sx = scroller ? scroller.scrollLeft : 0;
+  v.innerHTML = RENDER[S.theme]();
+  const sc2 = v.querySelector('.f-chips'); if (sc2) { sc2.scrollLeft = sx; keepVisible(sc2, sc2.querySelector('.f-chip.on')); }
+  if (typeof LightweightCharts !== 'undefined') mountCharts();
+}
+
+// ---------- loading ----------
+async function loadSym(sym){
   try {
-    const parsed = parseChart(await fetchChart(card.sym));
+    const parsed = parseChart(await fetchChart(sym));
     parsed.sum = summarize(parsed.meta, parsed.candles);
-    card.data = parsed;
+    S.data.set(sym, parsed);
     S.lastMeta = parsed.meta;
   } catch (e) {
-    card.data = {error: 'Could not load ' + card.sym + ': ' + e.message};
+    S.data.set(sym, {error: 'Could not load ' + label(sym) + ': ' + e.message});
   }
-  renderCard(card);
 }
-
 async function refreshAll(){
   $('#refresh').disabled = true;
-  await Promise.all([...S.cards.values()].map(loadCard));
+  await Promise.all(S.list.map(loadSym));
   $('#refresh').disabled = false;
   const p = ist(nowSec());
   $('#upd').textContent = 'Updated ' + pad(p.h)+':'+pad(p.mi)+':'+pad(p.s);
   updateMarket();
+  render();
   schedule();
 }
-
 function updateMarket(){
-  const open = marketOpen(S.lastMeta);
-  const m = $('#mkt');
+  const open = marketOpen(S.lastMeta), m = $('#mkt');
   m.textContent = open ? '● Market open' : 'Market closed';
-  m.className = 'pill ' + (open ? 'open' : 'closed');
+  m.className = 'pill ' + (open ? 'open' : '');
 }
-
 function schedule(){
   clearTimeout(S.timer);
   if (document.hidden) return;
@@ -452,37 +772,51 @@ function schedule(){
   else S.timer = setTimeout(() => { updateMarket(); if (marketOpen(S.lastMeta)) refreshAll(); else schedule(); }, IDLE_MS);
 }
 
-function syncEmpty(){ $('#empty').style.display = S.cards.size ? 'none' : 'block'; }
-
 async function addSym(sym){
   sym = sym.trim().toUpperCase();
   if (!sym) return;
-  if (S.cards.has(sym)) { const c = S.cards.get(sym); c.el.classList.add('flash'); c.el.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>c.el.classList.remove('flash'), 1200); return; }
-  const card = makeCard(sym);
-  syncEmpty();
-  await loadCard(card);
-  if (card.data && card.data.error) {
-    toast('Couldn’t find ' + sym + ' — try the search suggestions');
-    removeSym(sym, true);
-    return;
-  }
+  if (S.list.includes(sym)) { S.sel = sym; store.set('hc_sel', sym); render(); toast(label(sym) + ' is already on your screen'); return; }
+  toast('Adding ' + label(sym) + '…');
+  await loadSym(sym);
+  const d = S.data.get(sym);
+  if (!d || d.error || !d.sum) { S.data.delete(sym); toast('Couldn’t find ' + sym + ' — try the search suggestions'); return; }
   S.list.push(sym); store.set('hc_list', S.list);
-  card.el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  S.sel = sym; store.set('hc_sel', sym);
+  render();
+  toast(label(sym) + ' added');
+}
+function removeSym(sym){
+  S.list = S.list.filter(s => s !== sym); store.set('hc_list', S.list);
+  S.data.delete(sym); S.tbl.delete(sym);
+  if (S.sel === sym) { S.sel = S.list[0] || null; store.set('hc_sel', S.sel); }
+  render();
 }
 
-function removeSym(sym, silent){
-  const c = S.cards.get(sym);
-  if (c) { c.chart.remove(); c.el.remove(); S.cards.delete(sym); }
-  S.list = S.list.filter(s => s !== sym); store.set('hc_list', S.list);
-  syncEmpty();
-}
+// ---------- view events ----------
+$('#view').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const sym = b.dataset.sym;
+  if (b.dataset.act === 'remove') removeSym(sym);
+  else if (b.dataset.act === 'sel') { S.sel = sym; store.set('hc_sel', sym); render(); }
+  else if (b.dataset.act === 'tbl') { S.tbl.has(sym) ? S.tbl.delete(sym) : S.tbl.add(sym); render(); }
+  else if (b.dataset.act === 'add') { const q = $('#q'); q.focus(); q.scrollIntoView({block:'center'}); }
+});
+let tx = null, ty = null;
+$('#view').addEventListener('touchstart', e => { if (S.theme !== 'focus' || e.target.closest('.chartbox,.f-chips')) { tx = null; return; } tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, {passive:true});
+$('#view').addEventListener('touchend', e => {
+  if (tx == null || S.theme !== 'focus' || S.list.length < 2) return;
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)*1.5) return;
+  const i = S.list.indexOf(selSym()), n = S.list.length;
+  S.sel = S.list[(i + (dx < 0 ? 1 : -1) + n) % n]; store.set('hc_sel', S.sel); render();
+}, {passive:true});
 
 // ---------- search ----------
 let sugg = [], active = -1, searchSeq = 0;
 function withEx(base){ return base.startsWith('^') ? base : base + '.' + S.ex; }
 function localMatches(q){
   const Q = q.toUpperCase();
-  return LOCAL.filter(x => x.s.includes(Q) || x.n.toUpperCase().includes(Q) || (Q.includes('NIFTY') && x.s.startsWith('^NSE')) )
+  return LOCAL.filter(x => x.s.includes(Q) || x.n.toUpperCase().includes(Q) || (Q.includes('NIFTY') && x.s.startsWith('^NSE')))
     .slice(0, 8).map(x => ({sym: withEx(x.s), name: x.n}));
 }
 async function remoteMatches(q){
@@ -497,29 +831,26 @@ async function remoteMatches(q){
 function showSugg(){
   const box = $('#sugg');
   if (!sugg.length) { box.classList.remove('show'); box.innerHTML=''; return; }
-  box.innerHTML = sugg.map((x,i) => `<div data-i="${i}" class="${i===active?'active':''}"><b>${esc(label(x.sym))}</b><span class="tag">${esc(exOf(x.sym))}</span><span class="nm">${esc(x.name)}</span></div>`).join('');
+  box.innerHTML = sugg.map((x,i) => `<div data-i="${i}" role="option" class="${i===active?'active':''}"><b>${esc(label(x.sym))}</b><span class="tag">${esc(exOf(x.sym))}</span><span class="nm">${esc(x.name)}</span></div>`).join('');
   box.classList.add('show');
 }
 async function onSearch(){
-  const q = $('#q').value.trim();
-  const seq = ++searchSeq;
+  const q = $('#q').value.trim(), seq = ++searchSeq;
   if (!q) { sugg = []; showSugg(); return; }
   sugg = localMatches(q); active = -1; showSugg();
   const remote = await remoteMatches(q);
   if (seq !== searchSeq) return;
-  const seen = new Set(sugg.map(x=>x.sym));
-  const pref = '.' + S.ex;
+  const seen = new Set(sugg.map(x=>x.sym)), pref = '.' + S.ex;
   remote.sort((a,b) => (b.sym.endsWith(pref)) - (a.sym.endsWith(pref)));
   remote.forEach(x => { if (!seen.has(x.sym)) { seen.add(x.sym); sugg.push(x); } });
   sugg = sugg.slice(0, 12);
   showSugg();
 }
 function pick(i){
-  const x = sugg[i];
-  const raw = $('#q').value.trim().toUpperCase();
+  const x = sugg[i], raw = $('#q').value.trim().toUpperCase();
   const sym = x ? x.sym : (raw.includes('.') || raw.startsWith('^') ? raw : raw + '.' + S.ex);
   $('#q').value = ''; sugg = []; showSugg(); $('#q').blur();
-  addSym(sym);
+  if (raw || x) addSym(sym);
 }
 let deb;
 $('#q').addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(onSearch, 220); });
@@ -532,34 +863,36 @@ $('#q').addEventListener('keydown', e => {
 $('#sugg').addEventListener('mousedown', e => { const d = e.target.closest('[data-i]'); if (d) { e.preventDefault(); pick(+d.dataset.i); } });
 document.addEventListener('click', e => { if (!e.target.closest('.search')) { sugg = []; showSugg(); } });
 
-// ---------- toggles ----------
+// ---------- header controls ----------
 function syncSeg(){
   document.querySelectorAll('#exSeg button').forEach(b => b.classList.toggle('on', b.dataset.ex === S.ex));
   document.querySelectorAll('#rgSeg button').forEach(b => b.classList.toggle('on', b.dataset.r === S.range));
+  document.querySelectorAll('#themeBar button').forEach(b => { const on = b.dataset.theme === S.theme; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
 }
+function syncLive(){
+  const b = $('#live');
+  b.classList.toggle('on', S.live); b.setAttribute('aria-pressed', S.live);
+  b.querySelector('span').textContent = S.live ? 'Live: On' : 'Live: Off';
+  $('#rate').textContent = S.live ? 'Live mode: updates every 15 s while the market is open.' : 'Updates once a minute while the market is open (turn on Live for every 15 s).';
+}
+$('#themeBar').innerHTML = '<span class="lbl">Theme</span>' + THEMES.map(t => `<button type="button" data-theme="${t.id}"><span class="sw" style="background:${t.sw}"></span>${t.name}</button>`).join('');
+$('#themeBar').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.theme = b.dataset.theme; store.set('hc_theme', S.theme); syncSeg(); keepVisible($('#themeBar'), b); render(); };
 $('#exSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.ex = b.dataset.ex; store.set('hc_ex', S.ex); syncSeg(); if ($('#q').value.trim()) onSearch(); };
 $('#rgSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.range = b.dataset.r; store.set('hc_range', S.range); syncSeg(); refreshAll(); };
 $('#refresh').onclick = refreshAll;
-function syncLive(){
-  const b = $('#live');
-  b.classList.toggle('on', S.live);
-  b.textContent = S.live ? '⚡ Live: On' : '⚡ Live: Off';
-  $('#rate').textContent = S.live ? 'Live mode: updates every 15 s while the market is open.' : 'Updates once a minute while the market is open (turn on Live for every 15 s).';
-}
 $('#live').onclick = () => { S.live = !S.live; store.set('hc_live', S.live); syncLive(); toast(S.live ? 'Live on: updating every 15 seconds' : 'Live off: normal 1-hour view'); if (S.live) refreshAll(); else schedule(); };
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAll(); else clearTimeout(S.timer); });
 
 // ---------- boot ----------
-async function detectApi(){
-  try { await getJSON(API + '/chart?symbol=%5ENSEI&range=1d'); return true; } catch(e) { return false; }
-}
+async function detectApi(){ try { await getJSON(API + '/chart?symbol=%5ENSEI&range=1d'); return true; } catch(e) { return false; } }
 (async function boot(){
   syncSeg(); syncLive();
-  if (typeof LightweightCharts === 'undefined') { const b=$('#banner'); b.className='banner err show'; b.textContent='Chart library failed to load. Check your internet connection and reload.'; return; }
+  document.body.dataset.theme = S.theme;
+  keepVisible($('#themeBar'), $('#themeBar button.on'));
+  if (typeof LightweightCharts === 'undefined') { const b=$('#banner'); b.className='banner err show'; b.textContent='Chart library failed to load. Check your internet connection and reload.'; }
   S.demo = !(await detectApi());
-  if (S.demo) { const b = $('#banner'); b.className = 'banner demo show'; b.textContent = 'Demo data: prices are simulated because the /api backend is not running here. Deploy this repo on Vercel (free) to see live NSE/BSE 1-hour candles.'; }
-  S.list.forEach(makeCard);
-  syncEmpty();
+  if (S.demo) { const b = $('#banner'); b.className = 'banner show'; b.textContent = 'Preview with demo data: prices are simulated. Once you host it (Cloudflare Workers or Vercel, both free), it shows live NSE/BSE 1-hour candles.'; }
+  render();
   await refreshAll();
 })();
 })();
