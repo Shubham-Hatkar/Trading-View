@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hourly Candles · NSE &amp; BSE</title>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{--bg:#0b0f17;--panel:#121826;--panel2:#182033;--line:#243049;--text:#e6ebf5;--muted:#8b97b0;--up:#22c55e;--down:#ef4444;--accent:#60a5fa;--warn:#f59e0b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.num{font-variant-numeric:tabular-nums}
+header{position:sticky;top:0;z-index:20;background:rgba(11,15,23,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 14px}
+.toprow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+h1 small{color:var(--muted);font-weight:500}
+.pill{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.open{color:var(--up);border-color:rgba(34,197,94,.45)}
+.pill.closed{color:var(--muted)}
+.spacer{flex:1}
+.livebtn.on{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.6);color:#fcd34d}
+button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:#36507a}
+button:disabled{opacity:.5;cursor:default}
+.controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.search{position:relative;flex:1 1 240px;min-width:200px}
+.search input{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none}
+.search input:focus{border-color:var(--accent)}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:none;max-height:340px;overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.sugg.show{display:block}
+.sugg div{padding:9px 12px;display:flex;gap:8px;align-items:center;cursor:pointer;border-bottom:1px solid #1a2234}
+.sugg div:last-child{border-bottom:0}
+.sugg div.active,.sugg div:hover{background:var(--panel2)}
+.sugg b{font-weight:600}
+.sugg .nm{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.tag{font-size:10px;padding:1px 6px;border-radius:5px;background:#1f2a40;color:#9fb4d8;letter-spacing:.3px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--panel);padding:8px 11px;color:var(--muted)}
+.seg button.on{background:#1d2b46;color:var(--text)}
+.banner{margin:10px 14px 0;padding:9px 12px;border-radius:10px;font-size:13px;display:none}
+.banner.show{display:block}
+.banner.demo{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);color:#fcd34d}
+.banner.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5}
+main{padding:12px 14px 40px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+@media (max-width:420px){.cards{grid-template-columns:1fr}main{padding:10px 8px 40px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;transition:border-color .3s}
+.card.flash{border-color:var(--accent)}
+.chead{display:flex;gap:10px;align-items:flex-start}
+.cname{flex:1;min-width:0}
+.sym{font-weight:700;font-size:16px;display:flex;gap:6px;align-items:center}
+.full{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.price{text-align:right}
+.ltp{font-size:19px;font-weight:700}
+.chg{font-size:12.5px;font-weight:600}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+.x{background:transparent;border:0;color:var(--muted);padding:2px 4px;font-size:18px;line-height:1}
+.x:hover{color:var(--text)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.stat{background:var(--panel2);border-radius:9px;padding:6px 8px}
+.stat span{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.stat b{font-size:13.5px;font-weight:600}
+.sess{font-size:11.5px;color:var(--muted);margin-top:8px}
+.hours{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.hbox{border-radius:10px;padding:8px;border:1px solid var(--line);background:#0f1522}
+.hbox.cur{border-color:#2c4672}
+.hbox .lbl{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.live{color:var(--warn);font-weight:600}
+.ohlc{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;margin-top:4px;font-size:12.5px}
+.ohlc i{font-style:normal;color:var(--muted)}
+.ohlc b{font-weight:600;text-align:right}
+.hchg{margin-top:4px;font-size:12px;font-weight:600;text-align:right}
+.trend{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.chip{flex:1 1 0;min-width:40px;text-align:center;border-radius:7px;padding:3px 2px;font-size:10.5px;line-height:1.25}
+.chip.u{background:rgba(34,197,94,.14);color:#86efac}
+.chip.d{background:rgba(239,68,68,.14);color:#fca5a5}
+.chip.f{background:#1a2233;color:var(--muted)}
+.chip.forming{outline:1px dashed var(--warn)}
+.chartwrap{position:relative;height:230px;margin-top:10px}
+.legend{position:absolute;left:6px;top:4px;z-index:3;font-size:11.5px;background:rgba(18,24,38,.82);padding:3px 7px;border-radius:7px;pointer-events:none}
+.cfoot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
+.cfoot .muted{color:var(--muted);font-size:11.5px}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+th,td{padding:5px 4px;text-align:right;border-bottom:1px solid #1a2234}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+tr.day td{background:#151d2e;color:#a9b8d6;font-weight:600;text-align:left}
+.tbl{max-height:320px;overflow:auto;display:none}
+.tbl.show{display:block}
+.cerr{color:#fca5a5;font-size:13px;margin-top:10px}
+.loading{color:var(--muted);font-size:13px;margin-top:10px}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1d2b46;border:1px solid #36507a;padding:9px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+footer{color:var(--muted);font-size:11.5px;text-align:center;padding:0 14px 24px}
+</style>
+</head>
+<body>
+<header>
+  <div class="toprow">
+    <h1>Hourly Candles <small>· NSE &amp; BSE</small></h1>
+    <span id="mkt" class="pill">…</span>
+    <span class="spacer"></span>
+    <span id="upd" class="pill num" title="Last updated">—</span>
+    <button id="live" class="livebtn" title="Live mode: update every 15 seconds while the market is open">⚡ Live: Off</button>
+    <button id="refresh" title="Refresh now">↻ Refresh</button>
+  </div>
+  <div class="controls">
+    <div class="search">
+      <input id="q" type="search" placeholder="Search stock or index (e.g. Reliance, TCS, Nifty)…" autocomplete="off" spellcheck="false">
+      <div id="sugg" class="sugg"></div>
+    </div>
+    <div class="seg" id="exSeg"><button data-ex="NS">NSE</button><button data-ex="BO">BSE</button></div>
+    <div class="seg" id="rgSeg"><button data-r="1d">1D</button><button data-r="5d">5D</button><button data-r="1mo">1M</button></div>
+  </div>
+</header>
+<div id="banner" class="banner"></div>
+<main><div id="cards" class="cards"></div><div id="empty" class="empty" style="display:none">Search for a stock above to add it to your screen.</div></main>
+<footer>1-hour candles in IST (09:15–10:15 … 15:15–15:30). <span id="rate"></span> Data: Yahoo Finance (NSE near real-time, BSE ~15 min delayed). Not investment advice.</footer>
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const IST = 19800;                       // +05:30 in seconds
+const OPEN_MIN = 9*60+15, CLOSE_MIN = 15*60+30;
+const API = '/api';
+const LIVE_MS = 15000;               // Live switch on: refresh every 15 s while the market is open
+const NORMAL_MS = 60000;             // Live switch off: normal 1-hour candle view, refresh once a minute
+const IDLE_MS = 60000;               // market closed: just re-check the clock
+
+// Popular symbols for instant suggestions (also the demo-mode universe). p = rough price for demo only.
+const LOCAL = [
+ ['^NSEI','NIFTY 50',25700],['^BSESN','SENSEX',84000],['^NSEBANK','NIFTY BANK',57500],
+ ['RELIANCE','Reliance Industries',1480],['TCS','Tata Consultancy Services',3050],['HDFCBANK','HDFC Bank',1000],
+ ['ICICIBANK','ICICI Bank',1380],['INFY','Infosys',1500],['SBIN','State Bank of India',920],
+ ['BHARTIARTL','Bharti Airtel',2050],['ITC','ITC',420],['LT','Larsen & Toubro',3950],
+ ['HINDUNILVR','Hindustan Unilever',2450],['KOTAKBANK','Kotak Mahindra Bank',2150],['AXISBANK','Axis Bank',1230],
+ ['BAJFINANCE','Bajaj Finance',1050],['MARUTI','Maruti Suzuki',16200],['SUNPHARMA','Sun Pharmaceutical',1700],
+ ['TITAN','Titan Company',3750],['ASIANPAINT','Asian Paints',2500],['ULTRACEMCO','UltraTech Cement',12100],
+ ['NTPC','NTPC',340],['POWERGRID','Power Grid Corp',290],['ONGC','ONGC',250],['COALINDIA','Coal India',385],
+ ['WIPRO','Wipro',245],['HCLTECH','HCL Technologies',1550],['TECHM','Tech Mahindra',1450],
+ ['ADANIENT','Adani Enterprises',2500],['ADANIPORTS','Adani Ports',1450],['JSWSTEEL','JSW Steel',1180],
+ ['TATASTEEL','Tata Steel',175],['M&M','Mahindra & Mahindra',3500],['NESTLEIND','Nestle India',1250],
+ ['BAJAJFINSV','Bajaj Finserv',2050],['HDFCLIFE','HDFC Life',750],['SBILIFE','SBI Life',1850],
+ ['DRREDDY','Dr. Reddy\'s Labs',1250],['CIPLA','Cipla',1550],['EICHERMOT','Eicher Motors',7000],
+ ['HEROMOTOCO','Hero MotoCorp',5500],['BPCL','BPCL',360],['IOC','Indian Oil',165],['ETERNAL','Eternal (Zomato)',330],
+ ['TRENT','Trent',4800],['DMART','Avenue Supermarts (DMart)',4300],['IRCTC','IRCTC',720],['HAL','Hindustan Aeronautics',4700],
+ ['BEL','Bharat Electronics',420],['JIOFIN','Jio Financial Services',310],['TATAPOWER','Tata Power',400],
+ ['VEDL','Vedanta',490],['YESBANK','Yes Bank',22],['SUZLON','Suzlon Energy',60],['IDEA','Vodafone Idea',9]
+].map(([s,n,p]) => ({s,n,p}));
+
+// ---------- state & storage ----------
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+const S = {
+  list: store.get('hc_list', ['^NSEI','RELIANCE.NS','HDFCBANK.NS']),
+  range: store.get('hc_range', '5d'),
+  ex: store.get('hc_ex', 'NS'),
+  live: store.get('hc_live', false),
+  demo: false,
+  cards: new Map(),
+  timer: null,
+  lastMeta: null
+};
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const nf = new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt = v => (v==null||!isFinite(v)) ? '—' : nf.format(v);
+const sign = v => v>0?'+':'';
+const cls = v => v>0?'up':v<0?'down':'flat';
+const pct = (a,b) => (b ? (a-b)/b*100 : 0);
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ist(ts){ const d = new Date((ts+IST)*1000); return {y:d.getUTCFullYear(),mo:d.getUTCMonth(),d:d.getUTCDate(),h:d.getUTCHours(),mi:d.getUTCMinutes(),s:d.getUTCSeconds(),wd:d.getUTCDay()}; }
+const pad = n => String(n).padStart(2,'0');
+function dayKey(ts){ const p = ist(ts); return p.y+'-'+pad(p.mo+1)+'-'+pad(p.d); }
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function dayLabel(key){ const [y,m,d] = key.split('-').map(Number); const dt = new Date(Date.UTC(y,m-1,d)); return WD[dt.getUTCDay()]+' '+d+' '+MON[m-1]; }
+function hm(min){ return pad(Math.floor(min/60))+':'+pad(min%60); }
+const nowSec = () => Math.floor(Date.now()/1000);
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 2600); }
+function exOf(sym){ return sym.startsWith('^') ? (sym==='^BSESN'?'BSE':'INDEX') : sym.endsWith('.BO') ? 'BSE' : sym.endsWith('.NS') ? 'NSE' : ''; }
+function baseOf(sym){ return sym.replace(/\.(NS|BO)$/,''); }
+const IDX = {'^NSEI':'NIFTY 50','^BSESN':'SENSEX','^NSEBANK':'NIFTY BANK'};
+function label(sym){ return IDX[sym] || baseOf(sym).replace(/^\^/,''); }
+function pctStr(a,b){ let v = pct(a,b); if (Math.abs(v) < 0.005) v = 0; return (v>0?'+':'') + v.toFixed(2) + '%'; }
+
+function marketOpen(meta){
+  const n = nowSec();
+  const r = meta && meta.currentTradingPeriod && meta.currentTradingPeriod.regular;
+  if (!S.demo && r && r.start && r.end) return n >= r.start && n < r.end;
+  const p = ist(n), m = p.h*60+p.mi;
+  return p.wd>=1 && p.wd<=5 && m>=OPEN_MIN && m<CLOSE_MIN;
+}
+
+// ---------- data ----------
+async function getJSON(url){
+  const r = await fetch(url, {cache:'no-store'});
+  const ct = r.headers.get('content-type')||'';
+  if (!ct.includes('json')) throw new Error('API not available');
+  const j = await r.json();
+  if (!r.ok) throw new Error((j && j.error) || ('HTTP '+r.status));
+  return j;
+}
+async function fetchChart(sym){
+  if (S.demo) return demoChart(sym, S.range);
+  return getJSON(API+'/chart?symbol='+encodeURIComponent(sym)+'&range='+S.range);
+}
+
+// Yahoo 60m JSON -> hourly candles aligned to the NSE session (09:15 start), merging any stray live ticks.
+function parseChart(j){
+  const r = j && j.chart && j.chart.result && j.chart.result[0];
+  if (!r) throw new Error((j && j.chart && j.chart.error && j.chart.error.description) || 'No data for this symbol');
+  const t = r.timestamp || [], q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
+  const map = new Map();
+  for (let i=0;i<t.length;i++){
+    const o=q.open&&q.open[i], h=q.high&&q.high[i], l=q.low&&q.low[i], c=q.close&&q.close[i], v=(q.volume&&q.volume[i])||0;
+    if ([o,h,l,c].some(x => x==null || !isFinite(x))) continue;
+    const p = ist(t[i]), mod = p.h*60+p.mi;
+    if (mod < 9*60 || mod > CLOSE_MIN) continue;      // keep a 09:00-stamped bar, if any, in the first hour
+    const b = Math.max(0, Math.min(Math.floor((mod-OPEN_MIN)/60), 6));
+    const start = OPEN_MIN + b*60;
+    const day = dayKey(t[i]);
+    const key = day+'|'+b;
+    let k = map.get(key);
+    if (!k){ k = {day, b, start, end: Math.min(start+60, CLOSE_MIN), time: t[i] - ((mod-start)*60 + p.s), o, h, l, c, v}; map.set(key, k); }
+    else { if (t[i] < k._first) { k.o = o; } k.h = Math.max(k.h,h); k.l = Math.min(k.l,l); k.c = c; k.v += v; }
+    k._first = Math.min(k._first ?? t[i], t[i]);
+  }
+  const candles = [...map.values()].sort((a,b)=>a.time-b.time);
+  return {meta: r.meta || {}, candles};
+}
+
+function summarize(meta, candles){
+  const last = candles[candles.length-1];
+  if (!last) return null;
+  const today = candles.filter(c => c.day === last.day);
+  const before = candles.filter(c => c.day < last.day);
+  let prevClose;
+  if (S.range === '1d') prevClose = meta.chartPreviousClose ?? meta.previousClose;
+  else prevClose = meta.previousClose ?? (before.length ? before[before.length-1].c : meta.chartPreviousClose);
+  const ltpFresh = meta.regularMarketPrice != null && meta.regularMarketTime && dayKey(meta.regularMarketTime) === last.day;
+  const ltp = ltpFresh ? meta.regularMarketPrice : last.c;
+  const dayO = today[0].o;
+  const dayH = Math.max(...today.map(c=>c.h), ltpFresh && meta.regularMarketDayHigh ? meta.regularMarketDayHigh : -Infinity);
+  const dayL = Math.min(...today.map(c=>c.l), ltpFresh && meta.regularMarketDayLow ? meta.regularMarketDayLow : Infinity);
+  const isToday = last.day === dayKey(nowSec());
+  const forming = isToday && marketOpen(meta) && nowSec() < last.time + (last.end-last.start)*60;
+  const prevHour = candles.length > 1 ? candles[candles.length-2] : null;
+  return {last, prevHour, today, prevClose, ltp, dayO, dayH, dayL, forming, isToday};
+}
+
+// ---------- demo data (used when the page has no /api, e.g. opened as a plain file) ----------
+function hash(s){ let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h>>>0; }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed>>>15, 1|seed); t = t + Math.imul(t ^ t>>>7, 61|t) ^ t; return ((t ^ t>>>14)>>>0)/4294967296; }; }
+function demoChart(sym, range){
+  const base = baseOf(sym);
+  const L = LOCAL.find(x => x.s === base);
+  if (!L && !/^[A-Z0-9&^-]{1,20}$/.test(base)) return Promise.resolve({chart:{result:null,error:{description:'Not found'}}});
+  const rnd = rng(hash(sym));
+  let price = (L ? L.p : 100 + hash(base) % 2400) * (sym.endsWith('.BO') ? 1.0004 : 1);
+  const nDays = range==='1d'?1 : range==='5d'?5 : 22;
+  const n = nowSec(), p = ist(n), nowMin = p.h*60+p.mi;
+  const days = [];
+  let dt = Date.UTC(p.y,p.mo,p.d);
+  const todayOk = p.wd>=1 && p.wd<=5 && nowMin >= OPEN_MIN;
+  if (!todayOk) dt -= 86400000;
+  while (days.length < nDays + 1){ const wd = new Date(dt).getUTCDay(); if (wd>0 && wd<6) days.unshift(dt); dt -= 86400000; }
+  const ts=[], O=[], H=[], Lo=[], C=[], V=[];
+  let prevClose = price, chartPrev = price;
+  days.forEach((d, di) => {
+    const mid = d/1000 - IST;
+    const isToday = di === days.length-1 && todayOk;
+    const gap = (rnd()-0.5) * 0.012 * price;
+    price += gap;
+    for (let b=0;b<7;b++){
+      const start = OPEN_MIN + b*60;
+      if (isToday && start > nowMin) break;
+      const o = price;
+      const vol = 0.006 * price;
+      let c = o + (rnd()-0.48) * vol * (b===6 ? 0.4 : 1);
+      const h = Math.max(o,c) + rnd()*vol*0.45, l = Math.min(o,c) - rnd()*vol*0.45;
+      if (di === 0) { if (b===6) { chartPrev = c; } price = c; continue; }
+      ts.push(mid + start*60); O.push(o); H.push(h); Lo.push(l); C.push(c); V.push(Math.round(5e5 + rnd()*3e6));
+      price = c;
+    }
+    if (di === days.length-2) prevClose = price;
+  });
+  const last = ts.length-1;
+  const meta = { symbol: sym, currency:'INR', longName: L ? L.n : base, exchangeName: exOf(sym),
+    regularMarketPrice: C[last], regularMarketTime: ts[last] + 600, chartPreviousClose: range==='1d'?prevClose:chartPrev, previousClose: prevClose };
+  return Promise.resolve({chart:{result:[{meta, timestamp:ts, indicators:{quote:[{open:O,high:H,low:Lo,close:C,volume:V}]}}], error:null}});
+}
+
+// ---------- cards ----------
+function makeCard(sym){
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `
+    <div class="chead">
+      <div class="cname"><div class="sym"><span>${esc(label(sym))}</span><span class="tag">${esc(exOf(sym)||'—')}</span></div><div class="full">&nbsp;</div></div>
+      <div class="price"><div class="ltp num">—</div><div class="chg num flat">&nbsp;</div></div>
+      <button class="x" title="Remove">×</button>
+    </div>
+    <div class="body"><div class="loading">Loading 1-hour candles…</div></div>
+    <div class="chartwrap"><div class="legend num"></div></div>
+    <div class="cfoot"><span class="muted vol"></span><button class="tblbtn">Hourly table ▾</button></div>
+    <div class="tbl"></div>`;
+  $('#cards').appendChild(el);
+  const wrap = el.querySelector('.chartwrap');
+  const chart = LightweightCharts.createChart(wrap, {
+    autoSize: true,
+    layout: { background: {type:'solid', color:'transparent'}, textColor:'#8b97b0', fontSize: 11 },
+    grid: { vertLines: {color:'#182033'}, horzLines: {color:'#182033'} },
+    rightPriceScale: { borderColor:'#243049' },
+    timeScale: { borderColor:'#243049', timeVisible:true, secondsVisible:false, rightOffset: 2 },
+    crosshair: { mode: 0 },
+    localization: { priceFormatter: fmt }
+  });
+  const series = chart.addCandlestickSeries({ upColor:'#22c55e', downColor:'#ef4444', borderVisible:false, wickUpColor:'#22c55e', wickDownColor:'#ef4444' });
+  const card = { sym, el, chart, series, data:null, priceLine:null, tblOpen:false };
+  chart.subscribeCrosshairMove(param => {
+    const d = param && param.time ? param.seriesData.get(series) : null;
+    legend(card, d ? {time: d.time - IST, o:d.open, h:d.high, l:d.low, c:d.close} : null);
+  });
+  el.querySelector('.x').onclick = () => removeSym(sym);
+  el.querySelector('.tblbtn').onclick = () => { card.tblOpen = !card.tblOpen; renderTable(card); };
+  S.cards.set(sym, card);
+  return card;
+}
+
+function legend(card, c){
+  const L = card.el.querySelector('.legend');
+  if (!c && card.data && card.data.sum) { const x = card.data.sum.last; c = {time:x.time, o:x.o, h:x.h, l:x.l, c:x.c}; }
+  if (!c) { L.textContent = ''; return; }
+  const p = ist(c.time), ch = c.c - c.o;
+  L.innerHTML = `<span style="color:#8b97b0">${WD[p.wd]} ${p.d} ${MON[p.mo]} ${pad(p.h)}:${pad(p.mi)}</span> &nbsp;O ${fmt(c.o)} H ${fmt(c.h)} L ${fmt(c.l)} C <b class="${cls(ch)}">${fmt(c.c)}</b> <span class="${cls(ch)}">${pctStr(c.c,c.o)}</span>`;
+}
+
+function hourBox(c, title, live, isCur){
+  if (!c) return `<div class="hbox"><div class="lbl">${title}</div><div class="ohlc"><i>—</i><b></b></div></div>`;
+  const ch = c.c - c.o;
+  return `<div class="hbox${isCur?' cur':''}">
+    <div class="lbl"><span>${title}</span><span>${hm(c.start)}–${hm(c.end)}${live?' <span class="live">● live</span>':''}</span></div>
+    <div class="ohlc num"><i>Open</i><b>${fmt(c.o)}</b><i>High</i><b>${fmt(c.h)}</b><i>Low</i><b>${fmt(c.l)}</b><i>${live?'Now':'Close'}</i><b class="${cls(ch)}">${fmt(c.c)}</b></div>
+    <div class="hchg num ${cls(ch)}">${ch>=0?'▲':'▼'} ${sign(ch)}${fmt(ch)} (${pctStr(c.c,c.o)})</div>
+  </div>`;
+}
+
+function renderCard(card){
+  const {meta, candles, sum, error} = card.data || {};
+  const body = card.el.querySelector('.body');
+  if (error){ body.innerHTML = `<div class="cerr">${esc(error)}</div>`; return; }
+  if (!sum){ body.innerHTML = `<div class="cerr">No hourly candles for this range.</div>`; return; }
+  card.el.querySelector('.full').textContent = meta.longName || meta.shortName || card.sym;
+  const chg = sum.ltp - sum.prevClose;
+  card.el.querySelector('.ltp').textContent = fmt(sum.ltp);
+  const ce = card.el.querySelector('.chg');
+  ce.className = 'chg num ' + cls(chg);
+  ce.textContent = sum.prevClose ? `${sign(chg)}${fmt(chg)} (${pctStr(sum.ltp,sum.prevClose)})` : '';
+  const upN = sum.today.filter(c=>c.c>c.o).length, dnN = sum.today.filter(c=>c.c<c.o).length;
+  const chips = sum.today.map((c,i) => {
+    const pv = Math.round(pct(c.c,c.o)*10)/10;
+    const k = pv>0?'u':pv<0?'d':'f';
+    const isF = sum.forming && i===sum.today.length-1;
+    return `<div class="chip ${k}${isF?' forming':''}" title="${hm(c.start)}–${hm(c.end)}  O ${fmt(c.o)}  C ${fmt(c.c)}">${hm(c.start)}<br>${k==='u'?'▲':k==='d'?'▼':'■'} ${Math.abs(pv).toFixed(1)}%</div>`;
+  }).join('');
+  body.innerHTML = `
+    <div class="stats num">
+      <div class="stat"><span>Day open</span><b>${fmt(sum.dayO)}</b></div>
+      <div class="stat"><span>Day high</span><b class="up">${fmt(sum.dayH)}</b></div>
+      <div class="stat"><span>Day low</span><b class="down">${fmt(sum.dayL)}</b></div>
+      <div class="stat"><span>Prev close</span><b>${fmt(sum.prevClose)}</b></div>
+    </div>
+    <div class="sess">${sum.isToday ? 'Today' : 'Last session'} · ${dayLabel(sum.last.day)} · hourly trend: <span class="up">${upN} up</span> / <span class="down">${dnN} down</span></div>
+    <div class="trend">${chips}</div>
+    <div class="hours">
+      ${hourBox(sum.last, sum.forming ? 'This hour' : 'Last hour', sum.forming, true)}
+      ${hourBox(sum.prevHour, 'Prev hour', false, false)}
+    </div>`;
+  card.series.setData(candles.map(c => ({time: c.time + IST, open:c.o, high:c.h, low:c.l, close:c.c})));
+  if (card.priceLine) { card.series.removePriceLine(card.priceLine); card.priceLine = null; }
+  if (sum.prevClose) card.priceLine = card.series.createPriceLine({price: sum.prevClose, color:'#64748b', lineWidth:1, lineStyle:2, axisLabelVisible:true, title:'Prev close'});
+  if (!card._fitted || card._range !== S.range) {
+    const n = candles.length, show = Math.min(n, S.range==='1mo' ? 70 : 40);
+    card.chart.timeScale().setVisibleLogicalRange({from: n - show - 0.5, to: n + 1.5});
+    card._fitted = true; card._range = S.range;
+  }
+  const vol = sum.today.reduce((a,c)=>a+c.v,0);
+  card.el.querySelector('.vol').textContent = vol ? 'Day volume ' + new Intl.NumberFormat('en-IN').format(vol) : '';
+  legend(card, null);
+  renderTable(card);
+}
+
+function renderTable(card){
+  const box = card.el.querySelector('.tbl'), btn = card.el.querySelector('.tblbtn');
+  box.classList.toggle('show', card.tblOpen);
+  btn.textContent = card.tblOpen ? 'Hide table ▴' : 'Hourly table ▾';
+  if (!card.tblOpen || !card.data || !card.data.candles) { if(!card.tblOpen) box.innerHTML=''; return; }
+  const {candles, sum} = card.data;
+  const byDay = new Map();
+  candles.forEach(c => { if (!byDay.has(c.day)) byDay.set(c.day, []); byDay.get(c.day).push(c); });
+  let rows = '';
+  [...byDay.keys()].sort().reverse().forEach(day => {
+    rows += `<tr class="day"><td colspan="6">${dayLabel(day)}</td></tr>`;
+    byDay.get(day).slice().reverse().forEach(c => {
+      const ch = c.c - c.o;
+      const live = sum && sum.forming && c === sum.last;
+      rows += `<tr class="num"><td>${hm(c.start)}${live?' <span class="live">●</span>':''}</td><td>${fmt(c.o)}</td><td>${fmt(c.h)}</td><td>${fmt(c.l)}</td><td class="${cls(ch)}">${fmt(c.c)}</td><td class="${cls(ch)}">${pctStr(c.c,c.o)}</td></tr>`;
+    });
+  });
+  box.innerHTML = `<table><thead><tr><th>Hour</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Chg</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function loadCard(card){
+  try {
+    const parsed = parseChart(await fetchChart(card.sym));
+    parsed.sum = summarize(parsed.meta, parsed.candles);
+    card.data = parsed;
+    S.lastMeta = parsed.meta;
+  } catch (e) {
+    card.data = {error: 'Could not load ' + card.sym + ': ' + e.message};
+  }
+  renderCard(card);
+}
+
+async function refreshAll(){
+  $('#refresh').disabled = true;
+  await Promise.all([...S.cards.values()].map(loadCard));
+  $('#refresh').disabled = false;
+  const p = ist(nowSec());
+  $('#upd').textContent = 'Updated ' + pad(p.h)+':'+pad(p.mi)+':'+pad(p.s);
+  updateMarket();
+  schedule();
+}
+
+function updateMarket(){
+  const open = marketOpen(S.lastMeta);
+  const m = $('#mkt');
+  m.textContent = open ? '● Market open' : 'Market closed';
+  m.className = 'pill ' + (open ? 'open' : 'closed');
+}
+
+function schedule(){
+  clearTimeout(S.timer);
+  if (document.hidden) return;
+  if (marketOpen(S.lastMeta)) S.timer = setTimeout(refreshAll, S.live ? LIVE_MS : NORMAL_MS);
+  else S.timer = setTimeout(() => { updateMarket(); if (marketOpen(S.lastMeta)) refreshAll(); else schedule(); }, IDLE_MS);
+}
+
+function syncEmpty(){ $('#empty').style.display = S.cards.size ? 'none' : 'block'; }
+
+async function addSym(sym){
+  sym = sym.trim().toUpperCase();
+  if (!sym) return;
+  if (S.cards.has(sym)) { const c = S.cards.get(sym); c.el.classList.add('flash'); c.el.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>c.el.classList.remove('flash'), 1200); return; }
+  const card = makeCard(sym);
+  syncEmpty();
+  await loadCard(card);
+  if (card.data && card.data.error) {
+    toast('Couldn’t find ' + sym + ' — try the search suggestions');
+    removeSym(sym, true);
+    return;
+  }
+  S.list.push(sym); store.set('hc_list', S.list);
+  card.el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function removeSym(sym, silent){
+  const c = S.cards.get(sym);
+  if (c) { c.chart.remove(); c.el.remove(); S.cards.delete(sym); }
+  S.list = S.list.filter(s => s !== sym); store.set('hc_list', S.list);
+  syncEmpty();
+}
+
+// ---------- search ----------
+let sugg = [], active = -1, searchSeq = 0;
+function withEx(base){ return base.startsWith('^') ? base : base + '.' + S.ex; }
+function localMatches(q){
+  const Q = q.toUpperCase();
+  return LOCAL.filter(x => x.s.includes(Q) || x.n.toUpperCase().includes(Q) || (Q.includes('NIFTY') && x.s.startsWith('^NSE')) )
+    .slice(0, 8).map(x => ({sym: withEx(x.s), name: x.n}));
+}
+async function remoteMatches(q){
+  if (S.demo) return [];
+  try {
+    const j = await getJSON(API + '/search?q=' + encodeURIComponent(q));
+    return (j.quotes || [])
+      .filter(x => x.symbol && (/\.(NS|BO)$/.test(x.symbol) || (x.symbol.startsWith('^') && /NSI|BSE/.test(x.exchange||''))))
+      .map(x => ({sym: x.symbol, name: x.longname || x.shortname || ''}));
+  } catch(e) { return []; }
+}
+function showSugg(){
+  const box = $('#sugg');
+  if (!sugg.length) { box.classList.remove('show'); box.innerHTML=''; return; }
+  box.innerHTML = sugg.map((x,i) => `<div data-i="${i}" class="${i===active?'active':''}"><b>${esc(label(x.sym))}</b><span class="tag">${esc(exOf(x.sym))}</span><span class="nm">${esc(x.name)}</span></div>`).join('');
+  box.classList.add('show');
+}
+async function onSearch(){
+  const q = $('#q').value.trim();
+  const seq = ++searchSeq;
+  if (!q) { sugg = []; showSugg(); return; }
+  sugg = localMatches(q); active = -1; showSugg();
+  const remote = await remoteMatches(q);
+  if (seq !== searchSeq) return;
+  const seen = new Set(sugg.map(x=>x.sym));
+  const pref = '.' + S.ex;
+  remote.sort((a,b) => (b.sym.endsWith(pref)) - (a.sym.endsWith(pref)));
+  remote.forEach(x => { if (!seen.has(x.sym)) { seen.add(x.sym); sugg.push(x); } });
+  sugg = sugg.slice(0, 12);
+  showSugg();
+}
+function pick(i){
+  const x = sugg[i];
+  const raw = $('#q').value.trim().toUpperCase();
+  const sym = x ? x.sym : (raw.includes('.') || raw.startsWith('^') ? raw : raw + '.' + S.ex);
+  $('#q').value = ''; sugg = []; showSugg(); $('#q').blur();
+  addSym(sym);
+}
+let deb;
+$('#q').addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(onSearch, 220); });
+$('#q').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { active = Math.min(active+1, sugg.length-1); showSugg(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { active = Math.max(active-1, -1); showSugg(); e.preventDefault(); }
+  else if (e.key === 'Enter') { e.preventDefault(); pick(active >= 0 ? active : (sugg.length ? 0 : -1)); }
+  else if (e.key === 'Escape') { sugg = []; showSugg(); }
+});
+$('#sugg').addEventListener('mousedown', e => { const d = e.target.closest('[data-i]'); if (d) { e.preventDefault(); pick(+d.dataset.i); } });
+document.addEventListener('click', e => { if (!e.target.closest('.search')) { sugg = []; showSugg(); } });
+
+// ---------- toggles ----------
+function syncSeg(){
+  document.querySelectorAll('#exSeg button').forEach(b => b.classList.toggle('on', b.dataset.ex === S.ex));
+  document.querySelectorAll('#rgSeg button').forEach(b => b.classList.toggle('on', b.dataset.r === S.range));
+}
+$('#exSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.ex = b.dataset.ex; store.set('hc_ex', S.ex); syncSeg(); if ($('#q').value.trim()) onSearch(); };
+$('#rgSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.range = b.dataset.r; store.set('hc_range', S.range); syncSeg(); refreshAll(); };
+$('#refresh').onclick = refreshAll;
+function syncLive(){
+  const b = $('#live');
+  b.classList.toggle('on', S.live);
+  b.textContent = S.live ? '⚡ Live: On' : '⚡ Live: Off';
+  $('#rate').textContent = S.live ? 'Live mode: updates every 15 s while the market is open.' : 'Updates once a minute while the market is open (turn on Live for every 15 s).';
+}
+$('#live').onclick = () => { S.live = !S.live; store.set('hc_live', S.live); syncLive(); toast(S.live ? 'Live on: updating every 15 seconds' : 'Live off: normal 1-hour view'); if (S.live) refreshAll(); else schedule(); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAll(); else clearTimeout(S.timer); });
+
+// ---------- boot ----------
+async function detectApi(){
+  try { await getJSON(API + '/chart?symbol=%5ENSEI&range=1d'); return true; } catch(e) { return false; }
+}
+(async function boot(){
+  syncSeg(); syncLive();
+  if (typeof LightweightCharts === 'undefined') { const b=$('#banner'); b.className='banner err show'; b.textContent='Chart library failed to load. Check your internet connection and reload.'; return; }
+  S.demo = !(await detectApi());
+  if (S.demo) { const b = $('#banner'); b.className = 'banner demo show'; b.textContent = 'Demo data: prices are simulated because the /api backend is not running here. Deploy this repo on Vercel (free) to see live NSE/BSE 1-hour candles.'; }
+  S.list.forEach(makeCard);
+  syncEmpty();
+  await refreshAll();
+})();
+})();
+</script>
+</body>
+</html>
